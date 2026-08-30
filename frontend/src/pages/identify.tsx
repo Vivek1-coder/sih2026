@@ -1,6 +1,8 @@
 import { useState, type SubmitEvent } from "react";
 import {
   ArrowRight,
+  KeyRound,
+  MessageSquareText,
   ShieldCheck,
   UserPlus,
   Zap,
@@ -8,319 +10,1652 @@ import {
 
 import PatientShell from "../components/common/patientShell";
 import Field from "../components/common/field";
-import useAuth from "../hooks/useAuth";
-import type { AuthMethod } from "../types/auth.type";
 import useAccessibility from "../hooks/useAccessibility";
 
-type LoginMethod = "ABHA ID" | "Aadhaar" | "New patient";
+type LoginMethod = "ABHA ID" | "Aadhaar" | "Email / Phone";
+type AuthMode = "password" | "otp";
+type PageMode = "login" | "register";
+type IdentifierType =
+  | "abha"
+  | "aadhaar"
+  | "email_or_phone";
+
+interface LoginForm {
+  identifier: string;
+  password: string;
+  otp: string;
+}
+
+interface RegisterForm {
+  fullName: string;
+  dateOfBirth: string;
+  gender: string;
+
+  aadhaar: string;
+  abhaId: string;
+
+  mobile: string;
+  email: string;
+
+  address: string;
+  state: string;
+  district: string;
+
+  emergencyContact: string;
+  relationship: string;
+
+  password: string;
+  confirmPassword: string;
+}
+
+interface AuthUser {
+  id: string;
+  auth_method:
+    | "abha"
+    | "aadhaar"
+    | "email_or_phone"
+    | "registration"
+    | "refresh"
+    | "session";
+
+  display_name: string;
+  is_mock: boolean;
+}
+
+interface ApiResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  user: AuthUser;
+}
+
+interface ApiErrorResponse {
+  detail?: string;
+  message?: string;
+}
+
+/* =========================================================
+   API Configuration
+========================================================= */
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ??
+  "http://localhost:8000/api/";
+
+/**
+ * Generic backend API helper.
+ *
+ * credentials: "include" allows the backend to set/read
+ * HttpOnly authentication cookies.
+ */
+async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+
+    // Required for HttpOnly access/refresh cookies
+    credentials: "include",
+
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+  const data = await response
+    .json()
+    .catch(() => null);
+
+  if (!response.ok) {
+    const errorData =
+      data as ApiErrorResponse | null;
+
+    throw new Error(
+      errorData?.detail ??
+        errorData?.message ??
+        "Something went wrong.",
+    );
+  }
+
+  return data as T;
+}
+
+/* =========================================================
+   Component
+========================================================= */
 
 export default function Identify({
   go,
 }: {
   go: (path: string) => void;
 }) {
-  const { login } = useAuth();
   const { t } = useAccessibility();
-  const [tab, setTab] = useState<LoginMethod>("ABHA ID");
-  const [value, setValue] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  const handleTabChange = (newTab: LoginMethod) => {
-    setTab(newTab);
-    setValue("");
+  /* =======================================================
+     Page State
+  ======================================================= */
+
+  const [pageMode, setPageMode] =
+    useState<PageMode>("login");
+
+  const [loginMethod, setLoginMethod] =
+    useState<LoginMethod>("ABHA ID");
+
+  const [authMode, setAuthMode] =
+    useState<AuthMode>("password");
+
+  /* =======================================================
+     Login State
+  ======================================================= */
+
+  const [loginForm, setLoginForm] =
+    useState<LoginForm>({
+      identifier: "",
+      password: "",
+      otp: "",
+    });
+
+  const [otpSent, setOtpSent] =
+    useState(false);
+
+  const [otpLoading, setOtpLoading] =
+    useState(false);
+
+  /* =======================================================
+     Registration State
+  ======================================================= */
+
+  const [registerForm, setRegisterForm] =
+    useState<RegisterForm>({
+      fullName: "",
+      dateOfBirth: "",
+      gender: "",
+
+      aadhaar: "",
+      abhaId: "",
+
+      mobile: "",
+      email: "",
+
+      address: "",
+      state: "",
+      district: "",
+
+      emergencyContact: "",
+      relationship: "",
+
+      password: "",
+      confirmPassword: "",
+    });
+
+  /* =======================================================
+     Common State
+  ======================================================= */
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  /* =======================================================
+     Helpers
+  ======================================================= */
+
+  const clearMessages = () => {
     setError("");
+    setMessage("");
   };
 
-  const validate = () => {
-    if (tab === "New patient") {
-      return true;
-    }
+  const resetLoginForm = () => {
+    setLoginForm({
+      identifier: "",
+      password: "",
+      otp: "",
+    });
 
-    const cleanValue = value.replace(/\D/g, "");
+    setOtpSent(false);
 
-    if (!value.trim()){
-      setError(
-        tab === "Aadhaar"
-          ? "Please enter your Aadhaar number."
-          : "Please enter your ABHA number or address.",
-      );
+    clearMessages();
+  };
+
+  const getIdentifierType =
+    (): IdentifierType => {
+      switch (loginMethod) {
+        case "ABHA ID":
+          return "abha";
+
+        case "Aadhaar":
+          return "aadhaar";
+
+        case "Email / Phone":
+          return "email_or_phone";
+      }
+    };
+
+  /* =======================================================
+     Login Tab
+  ======================================================= */
+
+  const handleLoginMethodChange = (
+    method: LoginMethod,
+  ) => {
+    setLoginMethod(method);
+
+    setLoginForm({
+      identifier: "",
+      password: "",
+      otp: "",
+    });
+
+    setOtpSent(false);
+
+    clearMessages();
+  };
+
+  /* =======================================================
+     Password / OTP Mode
+  ======================================================= */
+
+  const handleAuthModeChange = (
+    mode: AuthMode,
+  ) => {
+    setAuthMode(mode);
+
+    setLoginForm((previous) => ({
+      ...previous,
+      password: "",
+      otp: "",
+    }));
+
+    setOtpSent(false);
+
+    clearMessages();
+  };
+
+  /* =======================================================
+     Identifier Validation
+  ======================================================= */
+
+  const validateLoginIdentifier = () => {
+    const identifier =
+      loginForm.identifier.trim();
+
+    if (!identifier) {
+      if (loginMethod === "ABHA ID") {
+        setError(
+          "Please enter your ABHA number or ABHA address.",
+        );
+      } else if (
+        loginMethod === "Aadhaar"
+      ) {
+        setError(
+          "Please enter your Aadhaar number.",
+        );
+      } else {
+        setError(
+          "Please enter your email address or mobile number.",
+        );
+      }
+
       return false;
     }
 
-    if (tab === "Aadhaar" && cleanValue.length !== 12) {
-      setError("Please enter a valid 12-digit Aadhaar number.");
+    /* Aadhaar */
+
+    if (loginMethod === "Aadhaar") {
+      const aadhaar =
+        identifier.replace(/\D/g, "");
+
+      if (aadhaar.length !== 12) {
+        setError(
+          "Please enter a valid 12-digit Aadhaar number.",
+        );
+
+        return false;
+      }
+    }
+
+    /* ABHA */
+
+    if (loginMethod === "ABHA ID") {
+      const digits =
+        identifier.replace(/\D/g, "");
+
+      const validAbhaNumber =
+        digits.length === 14;
+
+      const validAbhaAddress =
+        /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(
+          identifier,
+        );
+
+      if (
+        !validAbhaNumber &&
+        !validAbhaAddress
+      ) {
+        setError(
+          "Please enter a valid 14-digit ABHA number or ABHA address.",
+        );
+
+        return false;
+      }
+    }
+
+    /* Email / Phone */
+
+    if (loginMethod === "Email / Phone") {
+      const emailPattern =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      const phone =
+        identifier.replace(/\D/g, "");
+
+      const validEmail =
+        emailPattern.test(identifier);
+
+      const validPhone =
+        phone.length === 10 ||
+        (phone.length === 12 &&
+          phone.startsWith("91"));
+
+      if (!validEmail && !validPhone) {
+        setError(
+          "Please enter a valid email address or 10-digit mobile number.",
+        );
+
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  /* =======================================================
+     OTP Request API
+
+     POST /api/v1/auth/otp/request
+  ======================================================= */
+
+  const requestOtp = async () => {
+    clearMessages();
+
+    if (!validateLoginIdentifier()) {
+      return;
+    }
+
+    setOtpLoading(true);
+
+    try {
+      const response =
+        await apiRequest<ApiResponse>(
+          "/auth/otp/request",
+          {
+            method: "POST",
+
+            body: JSON.stringify({
+              identifier_type:
+                getIdentifierType(),
+
+              identifier:
+                loginForm.identifier.trim(),
+
+              purpose: "login",
+            }),
+          },
+        );
+
+      setOtpSent(true);
+
+      setMessage(
+          "OTP sent successfully.",
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to send OTP. Please try again.",
+      );
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  /* =======================================================
+     Password Login API
+
+     POST /api/v1/auth/login/password
+  ======================================================= */
+
+ const loginWithPassword =
+  async (): Promise<ApiResponse> => {
+    if (!loginForm.password.trim()) {
+      throw new Error(
+        "Please enter your password.",
+      );
+    }
+
+    const response =
+      await apiRequest<ApiResponse>(
+        "/auth/login/password",
+        {
+          method: "POST",
+
+          body: JSON.stringify({
+            identifier_type:
+              getIdentifierType(),
+
+            identifier:
+              loginForm.identifier.trim(),
+
+            password:
+              loginForm.password,
+          }),
+        },
+      );
+
+    return response;
+  };
+  /* =======================================================
+     OTP Login API
+
+     POST /api/v1/auth/login/otp
+  ======================================================= */
+
+  const loginWithOtp =
+  async (): Promise<ApiResponse> => {
+    if (!otpSent) {
+      throw new Error(
+        "Please request an OTP first.",
+      );
+    }
+
+    const otp =
+      loginForm.otp.replace(/\D/g, "");
+
+    if (otp.length !== 6) {
+      throw new Error(
+        "Please enter a valid 6-digit OTP.",
+      );
+    }
+
+    const response =
+      await apiRequest<ApiResponse>(
+        "/auth/login/otp",
+        {
+          method: "POST",
+
+          body: JSON.stringify({
+            identifier_type:
+              getIdentifierType(),
+
+            identifier:
+              loginForm.identifier.trim(),
+
+            otp,
+          }),
+        },
+      );
+
+    return response;
+  };
+
+  /* =======================================================
+     Login Submit
+
+     Uses SubmitEvent instead of deprecated FormEvent.
+  ======================================================= */
+
+const submitLogin = async (
+  event: SubmitEvent<HTMLFormElement>,
+) => {
+  event.preventDefault();
+
+  clearMessages();
+
+  if (!validateLoginIdentifier()) {
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    let response: ApiResponse;
+
+    if (authMode === "password") {
+      response =
+        await loginWithPassword();
+    } else {
+      response =
+        await loginWithOtp();
+    }
+
+    console.log(
+      "Logged in user:",
+      response.user,
+    );
+
+    // Backend has already set:
+    // - access_token HttpOnly cookie
+    // - refresh_token HttpOnly cookie
+
+    // Now move to consent page
+    go("/patient/consent");
+  } catch (loginError) {
+    setError(
+      loginError instanceof Error
+        ? loginError.message
+        : "Unable to sign in. Please try again.",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const validateRegistration = () => {
+    /* Full Name */
+
+    if (!registerForm.fullName.trim()) {
+      setError(
+        "Please enter your full name.",
+      );
+
+      return false;
+    }
+
+    /* DOB */
+
+    if (!registerForm.dateOfBirth) {
+      setError(
+        "Please enter your date of birth.",
+      );
+
+      return false;
+    }
+
+    /* Gender */
+
+    if (!registerForm.gender) {
+      setError(
+        "Please select your gender.",
+      );
+
+      return false;
+    }
+
+    /* Aadhaar Required */
+
+    const aadhaar =
+      registerForm.aadhaar.replace(
+        /\D/g,
+        "",
+      );
+
+    if (aadhaar.length !== 12) {
+      setError(
+        "Please enter a valid 12-digit Aadhaar number.",
+      );
+
+      return false;
+    }
+
+    /* ABHA Optional */
+
+    if (registerForm.abhaId.trim()) {
+      const abha =
+        registerForm.abhaId.trim();
+
+      const digits =
+        abha.replace(/\D/g, "");
+
+      const validNumber =
+        digits.length === 14;
+
+      const validAddress =
+        /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(
+          abha,
+        );
+
+      if (
+        !validNumber &&
+        !validAddress
+      ) {
+        setError(
+          "Please enter a valid ABHA number/address or leave it empty.",
+        );
+
+        return false;
+      }
+    }
+
+    /* Mobile */
+
+    const mobile =
+      registerForm.mobile.replace(
+        /\D/g,
+        "",
+      );
+
+    if (mobile.length !== 10) {
+      setError(
+        "Please enter a valid 10-digit mobile number.",
+      );
+
+      return false;
+    }
+
+    /* Email */
+
+    if (registerForm.email.trim()) {
+      const validEmail =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          registerForm.email.trim(),
+        );
+
+      if (!validEmail) {
+        setError(
+          "Please enter a valid email address.",
+        );
+
+        return false;
+      }
+    }
+
+    /* Address */
+
+    if (!registerForm.address.trim()) {
+      setError(
+        "Please enter your address.",
+      );
+
+      return false;
+    }
+
+    /* State */
+
+    if (!registerForm.state) {
+      setError(
+        "Please select your state.",
+      );
+
+      return false;
+    }
+
+    /* District */
+
+    if (!registerForm.district.trim()) {
+      setError(
+        "Please enter your district.",
+      );
+
+      return false;
+    }
+
+    /* Password */
+
+    if (
+      registerForm.password.length < 8
+    ) {
+      setError(
+        "Password must contain at least 8 characters.",
+      );
+
       return false;
     }
 
     if (
-      tab === "ABHA ID" &&
-      !value.includes("@") &&
-      cleanValue.length !== 14
+      !/[A-Z]/.test(
+        registerForm.password,
+      )
     ) {
       setError(
-        "Please enter a valid 14-digit ABHA number or ABHA address.",
+        "Password must contain at least one uppercase letter.",
       );
+
+      return false;
+    }
+
+    if (
+      !/[a-z]/.test(
+        registerForm.password,
+      )
+    ) {
+      setError(
+        "Password must contain at least one lowercase letter.",
+      );
+
+      return false;
+    }
+
+    if (
+      !/\d/.test(registerForm.password)
+    ) {
+      setError(
+        "Password must contain at least one number.",
+      );
+
+      return false;
+    }
+
+    /* Confirm Password */
+
+    if (
+      registerForm.password !==
+      registerForm.confirmPassword
+    ) {
+      setError(
+        "Passwords do not match.",
+      );
+
       return false;
     }
 
     return true;
   };
 
-  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
+  /* =======================================================
+     Registration API
+
+     POST /api/v1/auth/register
+  ======================================================= */
+
+  const submitRegistration = async (
+    event: SubmitEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
-    setError("");
+    clearMessages();
 
-    if (!validate()) {
+    if (!validateRegistration()) {
       return;
     }
 
     setLoading(true);
 
     try {
-      const authMethod: AuthMethod =
-        tab === "ABHA ID"
-          ? "abha_mock"
-          : tab === "Aadhaar"
-            ? "aadhaar_mock"
-            : "guest";
-      await login({
-        auth_method: authMethod,
-        ...(tab !== "New patient" ? { identifier: value.trim() } : {}),
-      });
+      await apiRequest<ApiResponse>(
+        "/auth/register",
+        {
+          method: "POST",
+
+          body: JSON.stringify({
+            full_name:
+              registerForm.fullName.trim(),
+
+            date_of_birth:
+              registerForm.dateOfBirth,
+
+            gender:
+              registerForm.gender,
+
+            aadhaar:
+              registerForm.aadhaar.replace(
+                /\D/g,
+                "",
+              ),
+
+            abha_id:
+              registerForm.abhaId.trim() ||
+              null,
+
+            mobile:
+              registerForm.mobile.replace(
+                /\D/g,
+                "",
+              ),
+
+            email:
+              registerForm.email.trim() ||
+              null,
+
+            address:
+              registerForm.address.trim(),
+
+            state:
+              registerForm.state,
+
+            district:
+              registerForm.district.trim(),
+
+            emergency_contact:
+              registerForm.emergencyContact.replace(
+                /\D/g,
+                "",
+              ) || null,
+
+            emergency_contact_relationship:
+              registerForm.relationship ||
+              null,
+
+            password:
+              registerForm.password,
+          }),
+        },
+      );
+
       go("/patient/consent");
-    } catch (loginError) {
+    } catch (registrationError) {
       setError(
-        loginError instanceof Error
-          ? loginError.message
-          : "Unable to sign in. Please try again.",
+        registrationError instanceof Error
+          ? registrationError.message
+          : "Unable to create your account. Please try again.",
       );
     } finally {
       setLoading(false);
     }
   };
 
+  /* =======================================================
+     Render
+  ======================================================= */
+
   return (
-    <PatientShell active="Identify" go={go}>
-      {/* Page heading */}
+    <PatientShell
+      active="Identify"
+      go={go}
+    >
+      {/* =================================================
+          Heading
+      ================================================= */}
+
       <section className="page-intro">
         <div>
-          <span className="eyebrow">{t("identify.eyebrow")}</span>
+          <span className="eyebrow">
+            {t("identify.eyebrow")}
+          </span>
 
-          <h1>{t("identify.title")}</h1>
+          <h1>
+            {pageMode === "login"
+              ? "Patient Login"
+              : "Create Patient Account"}
+          </h1>
 
           <p>
-            {t("identify.lede")}
+            {pageMode === "login"
+              ? "Securely access your health profile using ABHA, Aadhaar, email, or mobile number."
+              : "Create your patient profile before continuing with your consultation."}
           </p>
         </div>
 
         <div className="demo-badge">
           <ShieldCheck size={16} />
+
           {t("identify.demo")}
         </div>
       </section>
 
-      <form className="identify-card card" onSubmit={submit}>
-        {/* Authentication method */}
-        <div className="tabs" role="tablist">
-          {(
-            ["ABHA ID", "Aadhaar", "New patient"] as LoginMethod[]
-          ).map((item) => (
-            <button
-              key={item}
-              type="button"
-              role="tab"
-              aria-selected={tab === item}
-              className={tab === item ? "active" : ""}
-              onClick={() => handleTabChange(item)}
-            >
-              {item === "New patient" && <UserPlus size={16} />}
+      {/* =================================================
+          LOGIN
+      ================================================= */}
 
-              {item}
-            </button>
-          ))}
-        </div>
+      {pageMode === "login" && (
+        <form
+          className="identify-card card"
+          onSubmit={submitLogin}
+        >
+          <div className="login-section-heading">
+            <h2>
+              Sign in to your account
+            </h2>
 
-        {/* Existing patient login */}
-        {tab !== "New patient" && (
+            <p>
+              Select how you want to identify
+              yourself.
+            </p>
+          </div>
+
+          {/* =============================================
+              Login Method
+          ============================================= */}
+
+          <div
+            className="tabs"
+            role="tablist"
+            aria-label="Login method"
+          >
+            {(
+              [
+                "ABHA ID",
+                "Aadhaar",
+                "Email / Phone",
+              ] as LoginMethod[]
+            ).map((method) => (
+              <button
+                key={method}
+                type="button"
+                role="tab"
+                aria-selected={
+                  loginMethod === method
+                }
+                className={
+                  loginMethod === method
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleLoginMethodChange(
+                    method,
+                  )
+                }
+              >
+                {method}
+              </button>
+            ))}
+          </div>
+
           <div className="single-form">
-            <div className="login-section-heading">
-              <h2>
-                {tab === "Aadhaar"
-                  ? "Login with Aadhaar"
-                  : "Login with ABHA"}
-              </h2>
-
-              <p>
-                {tab === "Aadhaar"
-                  ? "Enter your Aadhaar details to verify your identity."
-                  : "Enter your ABHA number or ABHA address to continue."}
-              </p>
-            </div>
+            {/* ===========================================
+                Identifier
+            =========================================== */}
 
             <Field
               label={
-                tab === "Aadhaar"
-                  ? "Aadhaar number"
-                  : "ABHA number or address"
+                loginMethod === "ABHA ID"
+                  ? "ABHA number or address"
+                  : loginMethod ===
+                      "Aadhaar"
+                    ? "Aadhaar number"
+                    : "Email or mobile number"
               }
               placeholder={
-                tab === "Aadhaar"
-                  ? "Enter 12-digit Aadhaar number"
-                  : "14-digit ABHA number or name@abdm"
+                loginMethod === "ABHA ID"
+                  ? "14-digit ABHA or name@abdm"
+                  : loginMethod ===
+                      "Aadhaar"
+                    ? "Enter 12-digit Aadhaar number"
+                    : "you@example.com or 9876543210"
               }
-              value={value}
+              type={
+                loginMethod === "Aadhaar"
+                  ? "password"
+                  : "text"
+              }
+              value={
+                loginForm.identifier
+              }
               onChange={(event) => {
-                setValue(event.target.value);
-                setError("");
+                setLoginForm(
+                  (previous) => ({
+                    ...previous,
+
+                    identifier:
+                      event.target.value,
+                  }),
+                );
+
+                setOtpSent(false);
+
+                clearMessages();
               }}
-              type={tab === "Aadhaar" ? "password" : "text"}
             />
 
-            <Field
-              label="Mobile number"
-              placeholder="+91 98765 43210"
-            />
+            {/* ===========================================
+                Password / OTP
+            =========================================== */}
 
-            <div className="notice">
-              <ShieldCheck size={17} />
+            <div
+              className="tabs auth-mode-tabs"
+              role="tablist"
+              aria-label="Authentication mode"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={
+                  authMode === "password"
+                }
+                className={
+                  authMode === "password"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleAuthModeChange(
+                    "password",
+                  )
+                }
+              >
+                <KeyRound size={16} />
 
-              <span>
-                {tab === "Aadhaar"
-                  ? "Your Aadhaar number is masked and is never stored in this demonstration."
-                  : "Your ABHA details are used only to identify your health profile."}
-              </span>
+                Password
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={
+                  authMode === "otp"
+                }
+                className={
+                  authMode === "otp"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  handleAuthModeChange(
+                    "otp",
+                  )
+                }
+              >
+                <MessageSquareText
+                  size={16}
+                />
+
+                OTP
+              </button>
             </div>
 
-            {tab === "ABHA ID" && (
+            {/* ===========================================
+                Password
+            =========================================== */}
+
+            {authMode === "password" && (
+              <Field
+                label="Password"
+                type="password"
+                placeholder="Enter your password"
+                value={
+                  loginForm.password
+                }
+                onChange={(event) => {
+                  setLoginForm(
+                    (previous) => ({
+                      ...previous,
+
+                      password:
+                        event.target.value,
+                    }),
+                  );
+
+                  setError("");
+                }}
+              />
+            )}
+
+            {/* ===========================================
+                OTP
+            =========================================== */}
+
+            {authMode === "otp" && (
+              <div className="otp-section">
+                {otpSent && (
+                  <Field
+                    label="Enter OTP"
+                    placeholder="Enter 6-digit OTP"
+                    value={
+                      loginForm.otp
+                    }
+                    onChange={(
+                      event,
+                    ) => {
+                      const value =
+                        event.target.value
+                          .replace(
+                            /\D/g,
+                            "",
+                          )
+                          .slice(0, 6);
+
+                      setLoginForm(
+                        (previous) => ({
+                          ...previous,
+                          otp: value,
+                        }),
+                      );
+
+                      setError("");
+                    }}
+                  />
+                )}
+
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={otpLoading}
+                  onClick={requestOtp}
+                >
+                  <MessageSquareText
+                    size={17}
+                  />
+
+                  {otpLoading
+                    ? "Sending OTP..."
+                    : otpSent
+                      ? "Resend OTP"
+                      : "Send OTP"}
+                </button>
+              </div>
+            )}
+
+            {/* ===========================================
+                ABHA QR
+            =========================================== */}
+
+            {loginMethod ===
+              "ABHA ID" && (
               <button
                 className="scan-link"
                 type="button"
               >
                 <Zap size={17} />
+
                 Scan ABHA QR instead
               </button>
             )}
-          </div>
-        )}
 
-        {/* New patient registration */}
-        {tab === "New patient" && (
-          <div>
-            <div className="login-section-heading">
-              <h2>Create patient profile</h2>
+            {/* ===========================================
+                Security Notice
+            =========================================== */}
 
-              <p>
-                Don't have an ABHA ID? Enter your basic information
-                to continue as a new patient.
-              </p>
-            </div>
+            <div className="notice">
+              <ShieldCheck size={17} />
 
-            <div className="form-grid">
-              <Field
-                label="Full name"
-                placeholder="e.g. Ananya Iyer"
-              />
-
-              <Field
-                label="Date of birth"
-                type="date"
-              />
-
-              <Field
-                label="Gender"
-                select
-                options={[
-                  "Female",
-                  "Male",
-                  "Prefer not to say",
-                ]}
-              />
-
-              <Field
-                label="Mobile number"
-                placeholder="+91 98765 43210"
-              />
-
-              <Field
-                label="Email (optional)"
-                placeholder="you@example.com"
-              />
-
-              <Field
-                label="Address"
-                placeholder="House number, street, locality"
-                wide
-              />
-
-              <Field
-                label="State"
-                select
-                options={[
-                  "Maharashtra",
-                  "Assam",
-                  "Karnataka",
-                  "Tamil Nadu",
-                ]}
-              />
-
-              <Field
-                label="District"
-                placeholder="e.g. Pune"
-              />
-
-              <Field
-                label="Emergency contact"
-                placeholder="+91 98765 43210"
-              />
-
-              <Field
-                label="Relationship"
-                select
-                options={[
-                  "Parent",
-                  "Spouse",
-                  "Sibling",
-                  "Friend",
-                ]}
-              />
+              <span>
+                Your credentials are sent
+                securely to the authentication
+                server and are not stored in
+                browser storage.
+              </span>
             </div>
           </div>
-        )}
 
-        {/* Error */}
-        {error && (
-          <div
-            className="form-error"
-            role="alert"
-          >
-            {error}
+          {/* =============================================
+              Messages
+          ============================================= */}
+
+          {error && (
+            <div
+              className="form-error"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          {message && (
+            <div
+              className="form-success"
+              role="status"
+            >
+              {message}
+            </div>
+          )}
+
+          {/* =============================================
+              Footer
+          ============================================= */}
+
+          <div className="form-footer">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => {
+                setPageMode("register");
+
+                clearMessages();
+              }}
+            >
+              <UserPlus size={17} />
+
+              New patient? Register
+            </button>
+
+            <button
+              type="submit"
+              className="button primary"
+              disabled={loading}
+            >
+              {loading
+                ? "Signing in..."
+                : authMode === "otp"
+                  ? "Verify OTP & Continue"
+                  : "Login & Continue"}
+
+              {!loading && (
+                <ArrowRight size={17} />
+              )}
+            </button>
           </div>
-        )}
+        </form>
+      )}
 
-        {/* Footer */}
-        <div className="form-footer">
-          <span className="secure-note">
-            <ShieldCheck size={16} />
-            {t("identify.secure")}
-          </span>
+      {/* =================================================
+          REGISTRATION
+      ================================================= */}
 
-          <button
-            className="button primary"
-            type="submit"
-            disabled={loading}
-          >
-            {loading
-              ? t("identify.loading")
-              : tab === "New patient"
-                ? t("identify.create")
-                : t("identify.continue")}
+      {pageMode === "register" && (
+        <form
+          className="identify-card card"
+          onSubmit={
+            submitRegistration
+          }
+        >
+          <div className="login-section-heading">
+            <h2>
+              Create patient profile
+            </h2>
 
-            {!loading && <ArrowRight size={17} />}
-          </button>
-        </div>
-      </form>
+            <p>
+              Enter your details to register.
+              Aadhaar is required while ABHA
+              ID is optional.
+            </p>
+          </div>
+
+          <div className="form-grid">
+            {/* ===========================================
+                Personal Information
+            =========================================== */}
+
+            <Field
+              label="Full name"
+              placeholder="e.g. Ananya Iyer"
+              value={
+                registerForm.fullName
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    fullName:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="Date of birth"
+              type="date"
+              value={
+                registerForm.dateOfBirth
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    dateOfBirth:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="Gender"
+              select
+              options={[
+                "Female",
+                "Male",
+                "Other",
+                "Prefer not to say",
+              ]}
+              value={
+                registerForm.gender
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    gender:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            {/* ===========================================
+                Identity
+            =========================================== */}
+
+            <Field
+              label="Aadhaar number"
+              type="password"
+              placeholder="Enter 12-digit Aadhaar number"
+              value={
+                registerForm.aadhaar
+              }
+              onChange={(event) => {
+                const value =
+                  event.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 12);
+
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+                    aadhaar: value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="ABHA ID (optional)"
+              placeholder="14-digit ABHA or name@abdm"
+              value={
+                registerForm.abhaId
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    abhaId:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            {/* ===========================================
+                Contact
+            =========================================== */}
+
+            <Field
+              label="Mobile number"
+              placeholder="9876543210"
+              value={
+                registerForm.mobile
+              }
+              onChange={(event) => {
+                const value =
+                  event.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 10);
+
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+                    mobile: value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="Email (optional)"
+              type="email"
+              placeholder="you@example.com"
+              value={
+                registerForm.email
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    email:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            {/* ===========================================
+                Address
+            =========================================== */}
+
+            <Field
+              label="Address"
+              placeholder="House number, street, locality"
+              wide
+              value={
+                registerForm.address
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    address:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="State"
+              select
+              options={[
+                "Delhi",
+                "Maharashtra",
+                "Assam",
+                "Karnataka",
+                "Tamil Nadu",
+                "Uttar Pradesh",
+                "Rajasthan",
+                "West Bengal",
+              ]}
+              value={
+                registerForm.state
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    state:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="District"
+              placeholder="e.g. New Delhi"
+              value={
+                registerForm.district
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    district:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            {/* ===========================================
+                Emergency Contact
+            =========================================== */}
+
+            <Field
+              label="Emergency contact (optional)"
+              placeholder="9876543210"
+              value={
+                registerForm.emergencyContact
+              }
+              onChange={(event) => {
+                const value =
+                  event.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 10);
+
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    emergencyContact:
+                      value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="Relationship"
+              select
+              options={[
+                "Parent",
+                "Spouse",
+                "Sibling",
+                "Child",
+                "Friend",
+                "Guardian",
+              ]}
+              value={
+                registerForm.relationship
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    relationship:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            {/* ===========================================
+                Password
+            =========================================== */}
+
+            <Field
+              label="Password"
+              type="password"
+              placeholder="Minimum 8 characters"
+              value={
+                registerForm.password
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    password:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+
+            <Field
+              label="Confirm password"
+              type="password"
+              placeholder="Re-enter your password"
+              value={
+                registerForm.confirmPassword
+              }
+              onChange={(event) => {
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+
+                    confirmPassword:
+                      event.target.value,
+                  }),
+                );
+
+                setError("");
+              }}
+            />
+          </div>
+
+          {/* =============================================
+              Registration Security Notice
+          ============================================= */}
+
+          <div className="notice">
+            <ShieldCheck size={17} />
+
+            <span>
+              Aadhaar and health identity data
+              are sensitive information and
+              should be securely handled by
+              the backend. Passwords must
+              never be stored in plaintext.
+            </span>
+          </div>
+
+          {/* =============================================
+              Error
+          ============================================= */}
+
+          {error && (
+            <div
+              className="form-error"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          {/* =============================================
+              Footer
+          ============================================= */}
+
+          <div className="form-footer">
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => {
+                setPageMode("login");
+
+                resetLoginForm();
+              }}
+            >
+              Already registered? Login
+            </button>
+
+            <button
+              type="submit"
+              className="button primary"
+              disabled={loading}
+            >
+              {loading
+                ? "Creating account..."
+                : "Create Account"}
+
+              {!loading && (
+                <ArrowRight size={17} />
+              )}
+            </button>
+          </div>
+        </form>
+      )}
     </PatientShell>
   );
 }

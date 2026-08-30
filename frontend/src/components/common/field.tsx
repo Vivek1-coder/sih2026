@@ -1,44 +1,54 @@
-import type { ChangeEvent } from "react";
+interface FieldProps {
+  label: string;
+  placeholder?: string;
+  type?: string;
+  value?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement | HTMLSelectElement>;
+  select?: boolean;
+  options?: string[];
+  wide?: boolean;
+}
 
 export default function Field({
   label,
   placeholder,
   type = "text",
+  value,
+  onChange,
   select = false,
   options = [],
   wide = false,
-  value,
-  onChange,
-}: {
-  label: string;
-  placeholder?: string;
-  type?: string;
-  select?: boolean;
-  options?: string[];
-  wide?: boolean;
-  value?: string;
-  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
-}) {
+}: FieldProps) {
   return (
-    <label className={`field ${wide ? "wide" : ""}`}>
-      <span>{label}</span>
+    <div className={`field ${wide ? "wide" : ""}`}>
+      <label>{label}</label>
+
       {select ? (
-        <select defaultValue="">
+        <select
+          value={value ?? ""}
+          onChange={onChange}
+        >
           <option value="" disabled>
             Select {label.toLowerCase()}
           </option>
-          {options.map((o) => (
-            <option key={o}>{o}</option>
+
+          {options.map((option) => (
+            <option
+              key={option}
+              value={option}
+            >
+              {option}
+            </option>
           ))}
         </select>
       ) : (
         <input
           type={type}
           placeholder={placeholder}
-          value={value}
+          value={value ?? ""}
           onChange={onChange}
         />
       )}
-    </label>
+    </div>
   );
 }

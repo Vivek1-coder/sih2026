@@ -15,10 +15,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     JWT_ALGORITHM: str = "HS256"
-
     JWT_ISSUER: str = "my-api"
     JWT_AUDIENCE: str = "my-react-app"
 
+    MONGO_URI: str
+    MONGO_DB_NAME: str
     # Cookie defaults are development-friendly. Deployments should set
     # COOKIE_SECURE=true when the API is served over HTTPS.
     COOKIE_SECURE: bool = False

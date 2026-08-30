@@ -9,10 +9,29 @@ from app.api.routes.interview import router as interview_router
 from app.api.routes.physician import router as physician_router
 from app.api.routes.summary import router as summary_router
 from app.core.config import settings
+from contextlib import asynccontextmanager
+from app.core.dbConnection import (
+    connect_to_mongodb,
+    disconnect_from_mongodb,
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    connect_to_mongodb()
+
+    print("MongoDB connected successfully")
+
+    yield
+
+    disconnect_from_mongodb()
+
+    print("MongoDB disconnected")
 
 app = FastAPI(
     title="MediKiosk API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
