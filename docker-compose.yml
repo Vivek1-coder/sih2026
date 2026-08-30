@@ -1,0 +1,31 @@
+services:
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: development
+      FRONTEND_ORIGIN: http://localhost:5173
+      JWT_SECRET_KEY: demo-access-secret-change-before-production-123456
+      JWT_REFRESH_SECRET_KEY: demo-refresh-secret-change-before-production-12345
+    ports:
+      - "8000:8000"
+    volumes:
+      - medikiosk_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  medikiosk_uploads:
