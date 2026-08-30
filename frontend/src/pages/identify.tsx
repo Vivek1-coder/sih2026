@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from "react";
+
 import {
   ArrowRight,
   KeyRound,
@@ -8,25 +9,40 @@ import {
   Zap,
 } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 import PatientShell from "../components/common/patientShell";
 import Field from "../components/common/field";
+
 import useAccessibility from "../hooks/useAccessibility";
+import useAuth from "../hooks/useAuth";
+
+import type { IdentifierType } from "../services/auth";
+
+import {
+  loginWithPassword as loginWithPasswordApi,
+  loginWithOtp as loginWithOtpApi,
+  requestLoginOtp,
+  registerPatient,
+} from "../services/auth";
+
+/* =========================================================
+   Types
+========================================================= */
 
 type LoginMethod = "ABHA ID" | "Aadhaar" | "Email / Phone";
-type AuthMode = "password" | "otp";
-type PageMode = "login" | "register";
-type IdentifierType =
-  | "abha"
-  | "aadhaar"
-  | "email_or_phone";
 
-interface LoginForm {
+type AuthMode = "password" | "otp";
+
+type PageMode = "login" | "register";
+
+export interface LoginForm {
   identifier: string;
   password: string;
   otp: string;
 }
 
-interface RegisterForm {
+export interface RegisterForm {
   fullName: string;
   dateOfBirth: string;
   gender: string;
@@ -48,161 +64,76 @@ interface RegisterForm {
   confirmPassword: string;
 }
 
-interface AuthUser {
-  id: string;
-  auth_method:
-    | "abha"
-    | "aadhaar"
-    | "email_or_phone"
-    | "registration"
-    | "refresh"
-    | "session";
-
-  display_name: string;
-  is_mock: boolean;
-}
-
-interface ApiResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: "bearer";
-  expires_in: number;
-  user: AuthUser;
-}
-
-interface ApiErrorResponse {
-  detail?: string;
-  message?: string;
-}
-
-/* =========================================================
-   API Configuration
-========================================================= */
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://localhost:8000/api/";
-
-/**
- * Generic backend API helper.
- *
- * credentials: "include" allows the backend to set/read
- * HttpOnly authentication cookies.
- */
-async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-
-    // Required for HttpOnly access/refresh cookies
-    credentials: "include",
-
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-
-  const data = await response
-    .json()
-    .catch(() => null);
-
-  if (!response.ok) {
-    const errorData =
-      data as ApiErrorResponse | null;
-
-    throw new Error(
-      errorData?.detail ??
-        errorData?.message ??
-        "Something went wrong.",
-    );
-  }
-
-  return data as T;
-}
-
 /* =========================================================
    Component
 ========================================================= */
 
-export default function Identify({
-  go,
-}: {
-  go: (path: string) => void;
-}) {
+export default function Identify() {
   const { t } = useAccessibility();
+
+  const { setAuthenticatedUser } = useAuth();
+
+  const navigate = useNavigate();
 
   /* =======================================================
      Page State
   ======================================================= */
 
-  const [pageMode, setPageMode] =
-    useState<PageMode>("login");
+  const [pageMode, setPageMode] = useState<PageMode>("login");
 
-  const [loginMethod, setLoginMethod] =
-    useState<LoginMethod>("ABHA ID");
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("ABHA ID");
 
-  const [authMode, setAuthMode] =
-    useState<AuthMode>("password");
+  const [authMode, setAuthMode] = useState<AuthMode>("password");
 
   /* =======================================================
      Login State
   ======================================================= */
 
-  const [loginForm, setLoginForm] =
-    useState<LoginForm>({
-      identifier: "",
-      password: "",
-      otp: "",
-    });
+  const [loginForm, setLoginForm] = useState<LoginForm>({
+    identifier: "",
+    password: "",
+    otp: "",
+  });
 
-  const [otpSent, setOtpSent] =
-    useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
-  const [otpLoading, setOtpLoading] =
-    useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
 
   /* =======================================================
      Registration State
   ======================================================= */
 
-  const [registerForm, setRegisterForm] =
-    useState<RegisterForm>({
-      fullName: "",
-      dateOfBirth: "",
-      gender: "",
+  const [registerForm, setRegisterForm] = useState<RegisterForm>({
+    fullName: "",
+    dateOfBirth: "",
+    gender: "",
 
-      aadhaar: "",
-      abhaId: "",
+    aadhaar: "",
+    abhaId: "",
 
-      mobile: "",
-      email: "",
+    mobile: "",
+    email: "",
 
-      address: "",
-      state: "",
-      district: "",
+    address: "",
+    state: "",
+    district: "",
 
-      emergencyContact: "",
-      relationship: "",
+    emergencyContact: "",
+    relationship: "",
 
-      password: "",
-      confirmPassword: "",
-    });
+    password: "",
+    confirmPassword: "",
+  });
 
   /* =======================================================
      Common State
   ======================================================= */
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [message, setMessage] =
-    useState("");
+  const [message, setMessage] = useState("");
 
   /* =======================================================
      Helpers
@@ -225,27 +156,24 @@ export default function Identify({
     clearMessages();
   };
 
-  const getIdentifierType =
-    (): IdentifierType => {
-      switch (loginMethod) {
-        case "ABHA ID":
-          return "abha";
+  const getIdentifierType = (): IdentifierType => {
+    switch (loginMethod) {
+      case "ABHA ID":
+        return "abha";
 
-        case "Aadhaar":
-          return "aadhaar";
+      case "Aadhaar":
+        return "aadhaar";
 
-        case "Email / Phone":
-          return "email_or_phone";
-      }
-    };
+      case "Email / Phone":
+        return "email_or_phone";
+    }
+  };
 
   /* =======================================================
-     Login Tab
+     Login Method Change
   ======================================================= */
 
-  const handleLoginMethodChange = (
-    method: LoginMethod,
-  ) => {
+  const handleLoginMethodChange = (method: LoginMethod) => {
     setLoginMethod(method);
 
     setLoginForm({
@@ -260,12 +188,10 @@ export default function Identify({
   };
 
   /* =======================================================
-     Password / OTP Mode
+     Password / OTP Change
   ======================================================= */
 
-  const handleAuthModeChange = (
-    mode: AuthMode,
-  ) => {
+  const handleAuthModeChange = (mode: AuthMode) => {
     setAuthMode(mode);
 
     setLoginForm((previous) => ({
@@ -280,28 +206,19 @@ export default function Identify({
   };
 
   /* =======================================================
-     Identifier Validation
+     Login Identifier Validation
   ======================================================= */
 
   const validateLoginIdentifier = () => {
-    const identifier =
-      loginForm.identifier.trim();
+    const identifier = loginForm.identifier.trim();
 
     if (!identifier) {
       if (loginMethod === "ABHA ID") {
-        setError(
-          "Please enter your ABHA number or ABHA address.",
-        );
-      } else if (
-        loginMethod === "Aadhaar"
-      ) {
-        setError(
-          "Please enter your Aadhaar number.",
-        );
+        setError("Please enter your ABHA number or ABHA address.");
+      } else if (loginMethod === "Aadhaar") {
+        setError("Please enter your Aadhaar number.");
       } else {
-        setError(
-          "Please enter your email address or mobile number.",
-        );
+        setError("Please enter your email address or mobile number.");
       }
 
       return false;
@@ -310,13 +227,10 @@ export default function Identify({
     /* Aadhaar */
 
     if (loginMethod === "Aadhaar") {
-      const aadhaar =
-        identifier.replace(/\D/g, "");
+      const aadhaar = identifier.replace(/\D/g, "");
 
       if (aadhaar.length !== 12) {
-        setError(
-          "Please enter a valid 12-digit Aadhaar number.",
-        );
+        setError("Please enter a valid 12-digit Aadhaar number.");
 
         return false;
       }
@@ -325,24 +239,16 @@ export default function Identify({
     /* ABHA */
 
     if (loginMethod === "ABHA ID") {
-      const digits =
-        identifier.replace(/\D/g, "");
+      const digits = identifier.replace(/\D/g, "");
 
-      const validAbhaNumber =
-        digits.length === 14;
+      const validAbhaNumber = digits.length === 14;
 
-      const validAbhaAddress =
-        /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(
-          identifier,
-        );
+      const validAbhaAddress = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(
+        identifier,
+      );
 
-      if (
-        !validAbhaNumber &&
-        !validAbhaAddress
-      ) {
-        setError(
-          "Please enter a valid 14-digit ABHA number or ABHA address.",
-        );
+      if (!validAbhaNumber && !validAbhaAddress) {
+        setError("Please enter a valid 14-digit ABHA number or ABHA address.");
 
         return false;
       }
@@ -351,19 +257,14 @@ export default function Identify({
     /* Email / Phone */
 
     if (loginMethod === "Email / Phone") {
-      const emailPattern =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      const phone =
-        identifier.replace(/\D/g, "");
+      const phone = identifier.replace(/\D/g, "");
 
-      const validEmail =
-        emailPattern.test(identifier);
+      const validEmail = emailPattern.test(identifier);
 
       const validPhone =
-        phone.length === 10 ||
-        (phone.length === 12 &&
-          phone.startsWith("91"));
+        phone.length === 10 || (phone.length === 12 && phone.startsWith("91"));
 
       if (!validEmail && !validPhone) {
         setError(
@@ -378,9 +279,9 @@ export default function Identify({
   };
 
   /* =======================================================
-     OTP Request API
+     Request OTP
 
-     POST /api/v1/auth/otp/request
+     POST /api/auth/otp/request
   ======================================================= */
 
   const requestOtp = async () => {
@@ -393,30 +294,20 @@ export default function Identify({
     setOtpLoading(true);
 
     try {
-      const response =
-        await apiRequest<ApiResponse>(
-          "/auth/otp/request",
-          {
-            method: "POST",
+      const responseMessage = await requestLoginOtp({
+        identifier_type: getIdentifierType(),
 
-            body: JSON.stringify({
-              identifier_type:
-                getIdentifierType(),
+        identifier: loginForm.identifier.trim(),
 
-              identifier:
-                loginForm.identifier.trim(),
-
-              purpose: "login",
-            }),
-          },
-        );
+        purpose: "login",
+      });
 
       setOtpSent(true);
 
-      setMessage(
-          "OTP sent successfully.",
-      );
+      setMessage(responseMessage);
     } catch (requestError) {
+      setOtpSent(false);
+
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -428,143 +319,111 @@ export default function Identify({
   };
 
   /* =======================================================
-     Password Login API
+     Password Login
 
-     POST /api/v1/auth/login/password
+     POST /api/auth/login/password
   ======================================================= */
 
- const loginWithPassword =
-  async (): Promise<ApiResponse> => {
+  const loginWithPassword = async () => {
     if (!loginForm.password.trim()) {
-      throw new Error(
-        "Please enter your password.",
-      );
+      throw new Error("Please enter your password.");
     }
 
-    const response =
-      await apiRequest<ApiResponse>(
-        "/auth/login/password",
-        {
-          method: "POST",
+    return loginWithPasswordApi({
+      identifier_type: getIdentifierType(),
 
-          body: JSON.stringify({
-            identifier_type:
-              getIdentifierType(),
+      identifier: loginForm.identifier.trim(),
 
-            identifier:
-              loginForm.identifier.trim(),
-
-            password:
-              loginForm.password,
-          }),
-        },
-      );
-
-    return response;
+      password: loginForm.password,
+    });
   };
-  /* =======================================================
-     OTP Login API
 
-     POST /api/v1/auth/login/otp
+  /* =======================================================
+     OTP Login
+
+     POST /api/auth/login/otp
   ======================================================= */
 
-  const loginWithOtp =
-  async (): Promise<ApiResponse> => {
+  const loginWithOtp = async () => {
     if (!otpSent) {
-      throw new Error(
-        "Please request an OTP first.",
-      );
+      throw new Error("Please request an OTP first.");
     }
 
-    const otp =
-      loginForm.otp.replace(/\D/g, "");
+    const otp = loginForm.otp.replace(/\D/g, "");
 
     if (otp.length !== 6) {
-      throw new Error(
-        "Please enter a valid 6-digit OTP.",
-      );
+      throw new Error("Please enter a valid 6-digit OTP.");
     }
 
-    const response =
-      await apiRequest<ApiResponse>(
-        "/auth/login/otp",
-        {
-          method: "POST",
+    return loginWithOtpApi({
+      identifier_type: getIdentifierType(),
 
-          body: JSON.stringify({
-            identifier_type:
-              getIdentifierType(),
+      identifier: loginForm.identifier.trim(),
 
-            identifier:
-              loginForm.identifier.trim(),
-
-            otp,
-          }),
-        },
-      );
-
-    return response;
+      otp,
+    });
   };
 
   /* =======================================================
      Login Submit
-
-     Uses SubmitEvent instead of deprecated FormEvent.
   ======================================================= */
 
-const submitLogin = async (
-  event: SubmitEvent<HTMLFormElement>,
-) => {
-  event.preventDefault();
+  const submitLogin = async (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-  clearMessages();
+    clearMessages();
 
-  if (!validateLoginIdentifier()) {
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    let response: ApiResponse;
-
-    if (authMode === "password") {
-      response =
-        await loginWithPassword();
-    } else {
-      response =
-        await loginWithOtp();
+    if (!validateLoginIdentifier()) {
+      return;
     }
 
-    console.log(
-      "Logged in user:",
-      response.user,
-    );
+    setLoading(true);
 
-    // Backend has already set:
-    // - access_token HttpOnly cookie
-    // - refresh_token HttpOnly cookie
+    try {
+      /*
+       * Both functions return AuthUser.
+       */
+      const authenticatedUser =
+        authMode === "password"
+          ? await loginWithPassword()
+          : await loginWithOtp();
 
-    // Now move to consent page
-    go("/patient/consent");
-  } catch (loginError) {
-    setError(
-      loginError instanceof Error
-        ? loginError.message
-        : "Unable to sign in. Please try again.",
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      /*
+       * Store ONLY user details in AuthContext.
+       *
+       * Access and refresh JWTs remain inside
+       * HttpOnly browser cookies.
+       */
+      setAuthenticatedUser(authenticatedUser);
+
+      /*
+       * Successful login.
+       */
+      navigate("/patient/consent", {
+        replace: true,
+      });
+    } catch (loginError) {
+      setError(
+        loginError instanceof Error
+          ? loginError.message
+          : "Unable to sign in. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* =======================================================
+     Registration Validation
+  ======================================================= */
 
   const validateRegistration = () => {
+    clearMessages();
+
     /* Full Name */
 
     if (!registerForm.fullName.trim()) {
-      setError(
-        "Please enter your full name.",
-      );
+      setError("Please enter your full name.");
 
       return false;
     }
@@ -572,9 +431,21 @@ const submitLogin = async (
     /* DOB */
 
     if (!registerForm.dateOfBirth) {
-      setError(
-        "Please enter your date of birth.",
-      );
+      setError("Please enter your date of birth.");
+
+      return false;
+    }
+
+    const dateOfBirth = new Date(registerForm.dateOfBirth);
+
+    if (Number.isNaN(dateOfBirth.getTime())) {
+      setError("Please enter a valid date of birth.");
+
+      return false;
+    }
+
+    if (dateOfBirth > new Date()) {
+      setError("Date of birth cannot be in the future.");
 
       return false;
     }
@@ -582,25 +453,17 @@ const submitLogin = async (
     /* Gender */
 
     if (!registerForm.gender) {
-      setError(
-        "Please select your gender.",
-      );
+      setError("Please select your gender.");
 
       return false;
     }
 
-    /* Aadhaar Required */
+    /* Aadhaar */
 
-    const aadhaar =
-      registerForm.aadhaar.replace(
-        /\D/g,
-        "",
-      );
+    const aadhaar = registerForm.aadhaar.replace(/\D/g, "");
 
     if (aadhaar.length !== 12) {
-      setError(
-        "Please enter a valid 12-digit Aadhaar number.",
-      );
+      setError("Please enter a valid 12-digit Aadhaar number.");
 
       return false;
     }
@@ -608,27 +471,16 @@ const submitLogin = async (
     /* ABHA Optional */
 
     if (registerForm.abhaId.trim()) {
-      const abha =
-        registerForm.abhaId.trim();
+      const abha = registerForm.abhaId.trim();
 
-      const digits =
-        abha.replace(/\D/g, "");
+      const digits = abha.replace(/\D/g, "");
 
-      const validNumber =
-        digits.length === 14;
+      const validNumber = digits.length === 14;
 
-      const validAddress =
-        /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(
-          abha,
-        );
+      const validAddress = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(abha);
 
-      if (
-        !validNumber &&
-        !validAddress
-      ) {
-        setError(
-          "Please enter a valid ABHA number/address or leave it empty.",
-        );
+      if (!validNumber && !validAddress) {
+        setError("Please enter a valid ABHA number/address or leave it empty.");
 
         return false;
       }
@@ -636,16 +488,10 @@ const submitLogin = async (
 
     /* Mobile */
 
-    const mobile =
-      registerForm.mobile.replace(
-        /\D/g,
-        "",
-      );
+    const mobile = registerForm.mobile.replace(/\D/g, "");
 
     if (mobile.length !== 10) {
-      setError(
-        "Please enter a valid 10-digit mobile number.",
-      );
+      setError("Please enter a valid 10-digit mobile number.");
 
       return false;
     }
@@ -653,15 +499,12 @@ const submitLogin = async (
     /* Email */
 
     if (registerForm.email.trim()) {
-      const validEmail =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-          registerForm.email.trim(),
-        );
+      const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        registerForm.email.trim(),
+      );
 
       if (!validEmail) {
-        setError(
-          "Please enter a valid email address.",
-        );
+        setError("Please enter a valid email address.");
 
         return false;
       }
@@ -670,9 +513,7 @@ const submitLogin = async (
     /* Address */
 
     if (!registerForm.address.trim()) {
-      setError(
-        "Please enter your address.",
-      );
+      setError("Please enter your address.");
 
       return false;
     }
@@ -680,9 +521,7 @@ const submitLogin = async (
     /* State */
 
     if (!registerForm.state) {
-      setError(
-        "Please select your state.",
-      );
+      setError("Please select your state.");
 
       return false;
     }
@@ -690,68 +529,41 @@ const submitLogin = async (
     /* District */
 
     if (!registerForm.district.trim()) {
-      setError(
-        "Please enter your district.",
-      );
+      setError("Please enter your district.");
 
       return false;
     }
 
     /* Password */
 
-    if (
-      registerForm.password.length < 8
-    ) {
-      setError(
-        "Password must contain at least 8 characters.",
-      );
+    if (registerForm.password.length < 8) {
+      setError("Password must contain at least 8 characters.");
 
       return false;
     }
 
-    if (
-      !/[A-Z]/.test(
-        registerForm.password,
-      )
-    ) {
-      setError(
-        "Password must contain at least one uppercase letter.",
-      );
+    if (!/[A-Z]/.test(registerForm.password)) {
+      setError("Password must contain at least one uppercase letter.");
 
       return false;
     }
 
-    if (
-      !/[a-z]/.test(
-        registerForm.password,
-      )
-    ) {
-      setError(
-        "Password must contain at least one lowercase letter.",
-      );
+    if (!/[a-z]/.test(registerForm.password)) {
+      setError("Password must contain at least one lowercase letter.");
 
       return false;
     }
 
-    if (
-      !/\d/.test(registerForm.password)
-    ) {
-      setError(
-        "Password must contain at least one number.",
-      );
+    if (!/\d/.test(registerForm.password)) {
+      setError("Password must contain at least one number.");
 
       return false;
     }
 
     /* Confirm Password */
 
-    if (
-      registerForm.password !==
-      registerForm.confirmPassword
-    ) {
-      setError(
-        "Passwords do not match.",
-      );
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError("Passwords do not match.");
 
       return false;
     }
@@ -760,14 +572,12 @@ const submitLogin = async (
   };
 
   /* =======================================================
-     Registration API
+     Registration
 
-     POST /api/v1/auth/register
+     POST /api/auth/register
   ======================================================= */
 
-  const submitRegistration = async (
-    event: SubmitEvent<HTMLFormElement>,
-  ) => {
+  const submitRegistration = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     clearMessages();
@@ -779,67 +589,18 @@ const submitLogin = async (
     setLoading(true);
 
     try {
-      await apiRequest<ApiResponse>(
-        "/auth/register",
-        {
-          method: "POST",
+      const authenticatedUser = await registerPatient(registerForm);
 
-          body: JSON.stringify({
-            full_name:
-              registerForm.fullName.trim(),
+      /*
+       * /register also issues authentication
+       * cookies on the backend, so registration
+       * immediately creates an authenticated session.
+       */
+      setAuthenticatedUser(authenticatedUser);
 
-            date_of_birth:
-              registerForm.dateOfBirth,
-
-            gender:
-              registerForm.gender,
-
-            aadhaar:
-              registerForm.aadhaar.replace(
-                /\D/g,
-                "",
-              ),
-
-            abha_id:
-              registerForm.abhaId.trim() ||
-              null,
-
-            mobile:
-              registerForm.mobile.replace(
-                /\D/g,
-                "",
-              ),
-
-            email:
-              registerForm.email.trim() ||
-              null,
-
-            address:
-              registerForm.address.trim(),
-
-            state:
-              registerForm.state,
-
-            district:
-              registerForm.district.trim(),
-
-            emergency_contact:
-              registerForm.emergencyContact.replace(
-                /\D/g,
-                "",
-              ) || null,
-
-            emergency_contact_relationship:
-              registerForm.relationship ||
-              null,
-
-            password:
-              registerForm.password,
-          }),
-        },
-      );
-
-      go("/patient/consent");
+      navigate("/patient/consent", {
+        replace: true,
+      });
     } catch (registrationError) {
       setError(
         registrationError instanceof Error
@@ -852,28 +613,17 @@ const submitLogin = async (
   };
 
   /* =======================================================
-     Render
+     YOUR EXISTING JSX CONTINUES HERE
   ======================================================= */
 
   return (
-    <PatientShell
-      active="Identify"
-      go={go}
-    >
-      {/* =================================================
-          Heading
-      ================================================= */}
-
+    <PatientShell active="Identify">
       <section className="page-intro">
         <div>
-          <span className="eyebrow">
-            {t("identify.eyebrow")}
-          </span>
+          <span className="eyebrow">{t("identify.eyebrow")}</span>
 
           <h1>
-            {pageMode === "login"
-              ? "Patient Login"
-              : "Create Patient Account"}
+            {pageMode === "login" ? "Patient Login" : "Create Patient Account"}
           </h1>
 
           <p>
@@ -895,58 +645,32 @@ const submitLogin = async (
       ================================================= */}
 
       {pageMode === "login" && (
-        <form
-          className="identify-card card"
-          onSubmit={submitLogin}
-        >
+        <form className="identify-card card" onSubmit={submitLogin}>
           <div className="login-section-heading">
-            <h2>
-              Sign in to your account
-            </h2>
+            <h2>Sign in to your account</h2>
 
-            <p>
-              Select how you want to identify
-              yourself.
-            </p>
+            <p>Select how you want to identify yourself.</p>
           </div>
 
           {/* =============================================
               Login Method
           ============================================= */}
 
-          <div
-            className="tabs"
-            role="tablist"
-            aria-label="Login method"
-          >
-            {(
-              [
-                "ABHA ID",
-                "Aadhaar",
-                "Email / Phone",
-              ] as LoginMethod[]
-            ).map((method) => (
-              <button
-                key={method}
-                type="button"
-                role="tab"
-                aria-selected={
-                  loginMethod === method
-                }
-                className={
-                  loginMethod === method
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleLoginMethodChange(
-                    method,
-                  )
-                }
-              >
-                {method}
-              </button>
-            ))}
+          <div className="tabs" role="tablist" aria-label="Login method">
+            {(["ABHA ID", "Aadhaar", "Email / Phone"] as LoginMethod[]).map(
+              (method) => (
+                <button
+                  key={method}
+                  type="button"
+                  role="tab"
+                  aria-selected={loginMethod === method}
+                  className={loginMethod === method ? "active" : ""}
+                  onClick={() => handleLoginMethodChange(method)}
+                >
+                  {method}
+                </button>
+              ),
+            )}
           </div>
 
           <div className="single-form">
@@ -958,36 +682,25 @@ const submitLogin = async (
               label={
                 loginMethod === "ABHA ID"
                   ? "ABHA number or address"
-                  : loginMethod ===
-                      "Aadhaar"
+                  : loginMethod === "Aadhaar"
                     ? "Aadhaar number"
                     : "Email or mobile number"
               }
               placeholder={
                 loginMethod === "ABHA ID"
                   ? "14-digit ABHA or name@abdm"
-                  : loginMethod ===
-                      "Aadhaar"
+                  : loginMethod === "Aadhaar"
                     ? "Enter 12-digit Aadhaar number"
                     : "you@example.com or 9876543210"
               }
-              type={
-                loginMethod === "Aadhaar"
-                  ? "password"
-                  : "text"
-              }
-              value={
-                loginForm.identifier
-              }
+              type={loginMethod === "Aadhaar" ? "password" : "text"}
+              value={loginForm.identifier}
               onChange={(event) => {
-                setLoginForm(
-                  (previous) => ({
-                    ...previous,
+                setLoginForm((previous) => ({
+                  ...previous,
 
-                    identifier:
-                      event.target.value,
-                  }),
-                );
+                  identifier: event.target.value,
+                }));
 
                 setOtpSent(false);
 
@@ -1007,46 +720,22 @@ const submitLogin = async (
               <button
                 type="button"
                 role="tab"
-                aria-selected={
-                  authMode === "password"
-                }
-                className={
-                  authMode === "password"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleAuthModeChange(
-                    "password",
-                  )
-                }
+                aria-selected={authMode === "password"}
+                className={authMode === "password" ? "active" : ""}
+                onClick={() => handleAuthModeChange("password")}
               >
                 <KeyRound size={16} />
-
                 Password
               </button>
 
               <button
                 type="button"
                 role="tab"
-                aria-selected={
-                  authMode === "otp"
-                }
-                className={
-                  authMode === "otp"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  handleAuthModeChange(
-                    "otp",
-                  )
-                }
+                aria-selected={authMode === "otp"}
+                className={authMode === "otp" ? "active" : ""}
+                onClick={() => handleAuthModeChange("otp")}
               >
-                <MessageSquareText
-                  size={16}
-                />
-
+                <MessageSquareText size={16} />
                 OTP
               </button>
             </div>
@@ -1060,18 +749,13 @@ const submitLogin = async (
                 label="Password"
                 type="password"
                 placeholder="Enter your password"
-                value={
-                  loginForm.password
-                }
+                value={loginForm.password}
                 onChange={(event) => {
-                  setLoginForm(
-                    (previous) => ({
-                      ...previous,
+                  setLoginForm((previous) => ({
+                    ...previous,
 
-                      password:
-                        event.target.value,
-                    }),
-                  );
+                    password: event.target.value,
+                  }));
 
                   setError("");
                 }}
@@ -1088,26 +772,16 @@ const submitLogin = async (
                   <Field
                     label="Enter OTP"
                     placeholder="Enter 6-digit OTP"
-                    value={
-                      loginForm.otp
-                    }
-                    onChange={(
-                      event,
-                    ) => {
-                      const value =
-                        event.target.value
-                          .replace(
-                            /\D/g,
-                            "",
-                          )
-                          .slice(0, 6);
+                    value={loginForm.otp}
+                    onChange={(event) => {
+                      const value = event.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 6);
 
-                      setLoginForm(
-                        (previous) => ({
-                          ...previous,
-                          otp: value,
-                        }),
-                      );
+                      setLoginForm((previous) => ({
+                        ...previous,
+                        otp: value,
+                      }));
 
                       setError("");
                     }}
@@ -1120,9 +794,7 @@ const submitLogin = async (
                   disabled={otpLoading}
                   onClick={requestOtp}
                 >
-                  <MessageSquareText
-                    size={17}
-                  />
+                  <MessageSquareText size={17} />
 
                   {otpLoading
                     ? "Sending OTP..."
@@ -1137,14 +809,9 @@ const submitLogin = async (
                 ABHA QR
             =========================================== */}
 
-            {loginMethod ===
-              "ABHA ID" && (
-              <button
-                className="scan-link"
-                type="button"
-              >
+            {loginMethod === "ABHA ID" && (
+              <button className="scan-link" type="button">
                 <Zap size={17} />
-
                 Scan ABHA QR instead
               </button>
             )}
@@ -1157,10 +824,8 @@ const submitLogin = async (
               <ShieldCheck size={17} />
 
               <span>
-                Your credentials are sent
-                securely to the authentication
-                server and are not stored in
-                browser storage.
+                Your credentials are sent securely to the authentication server
+                and are not stored in browser storage.
               </span>
             </div>
           </div>
@@ -1170,19 +835,13 @@ const submitLogin = async (
           ============================================= */}
 
           {error && (
-            <div
-              className="form-error"
-              role="alert"
-            >
+            <div className="form-error" role="alert">
               {error}
             </div>
           )}
 
           {message && (
-            <div
-              className="form-success"
-              role="status"
-            >
+            <div className="form-success" role="status">
               {message}
             </div>
           )}
@@ -1202,24 +861,17 @@ const submitLogin = async (
               }}
             >
               <UserPlus size={17} />
-
               New patient? Register
             </button>
 
-            <button
-              type="submit"
-              className="button primary"
-              disabled={loading}
-            >
+            <button type="submit" className="button primary" disabled={loading}>
               {loading
                 ? "Signing in..."
                 : authMode === "otp"
                   ? "Verify OTP & Continue"
                   : "Login & Continue"}
 
-              {!loading && (
-                <ArrowRight size={17} />
-              )}
+              {!loading && <ArrowRight size={17} />}
             </button>
           </div>
         </form>
@@ -1230,21 +882,13 @@ const submitLogin = async (
       ================================================= */}
 
       {pageMode === "register" && (
-        <form
-          className="identify-card card"
-          onSubmit={
-            submitRegistration
-          }
-        >
+        <form className="identify-card card" onSubmit={submitRegistration}>
           <div className="login-section-heading">
-            <h2>
-              Create patient profile
-            </h2>
+            <h2>Create patient profile</h2>
 
             <p>
-              Enter your details to register.
-              Aadhaar is required while ABHA
-              ID is optional.
+              Enter your details to register. Aadhaar is required while ABHA ID
+              is optional.
             </p>
           </div>
 
@@ -1256,18 +900,13 @@ const submitLogin = async (
             <Field
               label="Full name"
               placeholder="e.g. Ananya Iyer"
-              value={
-                registerForm.fullName
-              }
+              value={registerForm.fullName}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    fullName:
-                      event.target.value,
-                  }),
-                );
+                  fullName: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1276,18 +915,13 @@ const submitLogin = async (
             <Field
               label="Date of birth"
               type="date"
-              value={
-                registerForm.dateOfBirth
-              }
+              value={registerForm.dateOfBirth}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    dateOfBirth:
-                      event.target.value,
-                  }),
-                );
+                  dateOfBirth: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1296,24 +930,14 @@ const submitLogin = async (
             <Field
               label="Gender"
               select
-              options={[
-                "Female",
-                "Male",
-                "Other",
-                "Prefer not to say",
-              ]}
-              value={
-                registerForm.gender
-              }
+              options={["Female", "Male", "Other", "Prefer not to say"]}
+              value={registerForm.gender}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    gender:
-                      event.target.value,
-                  }),
-                );
+                  gender: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1327,21 +951,16 @@ const submitLogin = async (
               label="Aadhaar number"
               type="password"
               placeholder="Enter 12-digit Aadhaar number"
-              value={
-                registerForm.aadhaar
-              }
+              value={registerForm.aadhaar}
               onChange={(event) => {
-                const value =
-                  event.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 12);
+                const value = event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 12);
 
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
-                    aadhaar: value,
-                  }),
-                );
+                setRegisterForm((previous) => ({
+                  ...previous,
+                  aadhaar: value,
+                }));
 
                 setError("");
               }}
@@ -1350,18 +969,13 @@ const submitLogin = async (
             <Field
               label="ABHA ID (optional)"
               placeholder="14-digit ABHA or name@abdm"
-              value={
-                registerForm.abhaId
-              }
+              value={registerForm.abhaId}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    abhaId:
-                      event.target.value,
-                  }),
-                );
+                  abhaId: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1374,21 +988,16 @@ const submitLogin = async (
             <Field
               label="Mobile number"
               placeholder="9876543210"
-              value={
-                registerForm.mobile
-              }
+              value={registerForm.mobile}
               onChange={(event) => {
-                const value =
-                  event.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 10);
+                const value = event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 10);
 
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
-                    mobile: value,
-                  }),
-                );
+                setRegisterForm((previous) => ({
+                  ...previous,
+                  mobile: value,
+                }));
 
                 setError("");
               }}
@@ -1398,18 +1007,13 @@ const submitLogin = async (
               label="Email (optional)"
               type="email"
               placeholder="you@example.com"
-              value={
-                registerForm.email
-              }
+              value={registerForm.email}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    email:
-                      event.target.value,
-                  }),
-                );
+                  email: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1423,18 +1027,13 @@ const submitLogin = async (
               label="Address"
               placeholder="House number, street, locality"
               wide
-              value={
-                registerForm.address
-              }
+              value={registerForm.address}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    address:
-                      event.target.value,
-                  }),
-                );
+                  address: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1453,18 +1052,13 @@ const submitLogin = async (
                 "Rajasthan",
                 "West Bengal",
               ]}
-              value={
-                registerForm.state
-              }
+              value={registerForm.state}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    state:
-                      event.target.value,
-                  }),
-                );
+                  state: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1473,18 +1067,13 @@ const submitLogin = async (
             <Field
               label="District"
               placeholder="e.g. New Delhi"
-              value={
-                registerForm.district
-              }
+              value={registerForm.district}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    district:
-                      event.target.value,
-                  }),
-                );
+                  district: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1497,23 +1086,17 @@ const submitLogin = async (
             <Field
               label="Emergency contact (optional)"
               placeholder="9876543210"
-              value={
-                registerForm.emergencyContact
-              }
+              value={registerForm.emergencyContact}
               onChange={(event) => {
-                const value =
-                  event.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 10);
+                const value = event.target.value
+                  .replace(/\D/g, "")
+                  .slice(0, 10);
 
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    emergencyContact:
-                      value,
-                  }),
-                );
+                  emergencyContact: value,
+                }));
 
                 setError("");
               }}
@@ -1530,18 +1113,13 @@ const submitLogin = async (
                 "Friend",
                 "Guardian",
               ]}
-              value={
-                registerForm.relationship
-              }
+              value={registerForm.relationship}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    relationship:
-                      event.target.value,
-                  }),
-                );
+                  relationship: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1555,18 +1133,13 @@ const submitLogin = async (
               label="Password"
               type="password"
               placeholder="Minimum 8 characters"
-              value={
-                registerForm.password
-              }
+              value={registerForm.password}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    password:
-                      event.target.value,
-                  }),
-                );
+                  password: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1576,18 +1149,13 @@ const submitLogin = async (
               label="Confirm password"
               type="password"
               placeholder="Re-enter your password"
-              value={
-                registerForm.confirmPassword
-              }
+              value={registerForm.confirmPassword}
               onChange={(event) => {
-                setRegisterForm(
-                  (previous) => ({
-                    ...previous,
+                setRegisterForm((previous) => ({
+                  ...previous,
 
-                    confirmPassword:
-                      event.target.value,
-                  }),
-                );
+                  confirmPassword: event.target.value,
+                }));
 
                 setError("");
               }}
@@ -1602,11 +1170,9 @@ const submitLogin = async (
             <ShieldCheck size={17} />
 
             <span>
-              Aadhaar and health identity data
-              are sensitive information and
-              should be securely handled by
-              the backend. Passwords must
-              never be stored in plaintext.
+              Aadhaar and health identity data are sensitive information and
+              should be securely handled by the backend. Passwords must never be
+              stored in plaintext.
             </span>
           </div>
 
@@ -1615,10 +1181,7 @@ const submitLogin = async (
           ============================================= */}
 
           {error && (
-            <div
-              className="form-error"
-              role="alert"
-            >
+            <div className="form-error" role="alert">
               {error}
             </div>
           )}
@@ -1640,18 +1203,10 @@ const submitLogin = async (
               Already registered? Login
             </button>
 
-            <button
-              type="submit"
-              className="button primary"
-              disabled={loading}
-            >
-              {loading
-                ? "Creating account..."
-                : "Create Account"}
+            <button type="submit" className="button primary" disabled={loading}>
+              {loading ? "Creating account..." : "Create Account"}
 
-              {!loading && (
-                <ArrowRight size={17} />
-              )}
+              {!loading && <ArrowRight size={17} />}
             </button>
           </div>
         </form>

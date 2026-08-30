@@ -1,18 +1,35 @@
-import { createContext } from "react";
+import {
+  createContext,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 
 import type {
   AuthStatus,
   AuthUser,
-  LoginInput,
 } from "../types/auth.type";
 
-export type AuthContextValue = {
+export interface AuthContextValue {
   user: AuthUser | null;
-  status: AuthStatus;
-  login: (input: LoginInput) => Promise<AuthUser>;
-  logout: () => Promise<void>;
-  preferredLanguage: string;
-  setPreferredLanguage: (language: string) => void;
-};
 
-export const AuthContext = createContext<AuthContextValue | null>(null);
+  status: AuthStatus;
+
+  setAuthenticatedUser: (
+    user: AuthUser,
+  ) => void;
+
+  reloadUser: () => Promise<void>;
+
+  logout: () => Promise<void>;
+
+  preferredLanguage: string;
+
+  setPreferredLanguage: Dispatch<
+    SetStateAction<string>
+  >;
+}
+
+export const AuthContext =
+  createContext<
+    AuthContextValue | undefined
+  >(undefined);

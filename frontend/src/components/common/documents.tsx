@@ -21,6 +21,7 @@ import {
 import type { UploadedDocument } from "../../types/document.type";
 import useAccessibility from "../../hooks/useAccessibility";
 import PatientShell from "./patientShell";
+import { useNavigate } from "react-router-dom";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = new Set(["application/pdf", "image/jpeg", "image/png"]);
@@ -37,7 +38,7 @@ function formatDate(value: string | null) {
     : "Date being inferred";
 }
 
-export default function Documents({ go }: { go: (path: string) => void }) {
+export default function Documents() {
   const { t } = useAccessibility();
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [documentConsent, setDocumentConsent] = useState(false);
@@ -46,7 +47,7 @@ export default function Documents({ go }: { go: (path: string) => void }) {
   const [error, setError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
-
+  const navigate = useNavigate();
   const refresh = useCallback(async () => {
     const latest = await listDocuments();
     setDocuments(latest);
@@ -113,7 +114,7 @@ export default function Documents({ go }: { go: (path: string) => void }) {
   const processing = documents.some((document) => document.status === "pending" || document.status === "processing");
 
   return (
-    <PatientShell active="Scan" go={go}>
+    <PatientShell active="Scan">
       <section className="page-intro">
         <div>
           <span className="eyebrow">{t("documents.eyebrow")}</span>
@@ -126,7 +127,7 @@ export default function Documents({ go }: { go: (path: string) => void }) {
         <div className="consent-warning document-consent-warning" role="status">
           <AlertTriangle size={17} />
           <span>Document processing is optional and currently off.</span>
-          <button onClick={() => go("/patient/consent")}>Review consent</button>
+          <button onClick={() => navigate("/patient/consent")}>Review consent</button>
         </div>
       )}
 
@@ -248,10 +249,10 @@ export default function Documents({ go }: { go: (path: string) => void }) {
       )}
 
       <div className="bottom-actions">
-        <button className="button secondary" onClick={() => go("/patient/interview")}>
+        <button className="button secondary" onClick={() => navigate("/patient/interview")}>
           <ChevronLeft size={17} /> Back
         </button>
-        <button className="button primary" onClick={() => go("/patient/summary")} disabled={processing || uploading}>
+        <button className="button primary" onClick={() => navigate("/patient/summary")} disabled={processing || uploading}>
           Review my summary <ArrowRight size={17} />
         </button>
       </div>

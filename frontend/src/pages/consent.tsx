@@ -8,17 +8,14 @@ import {
   Volume2,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import type { ConsentChoices } from "../types/consent.type";
+import useAccessibility from "../hooks/useAccessibility";
+import useAuth from "../hooks/useAuth";
+import useSpeech from "../hooks/useSpeech";
+import { getConsent, revokeConsent, saveConsent } from "../services/consent";
+import PatientShell from "../components/common/patientShell";
+import { useNavigate } from "react-router-dom";
 
-import useAuth from "../../hooks/useAuth";
-import useSpeech from "../../hooks/useSpeech";
-import {
-  getConsent,
-  revokeConsent,
-  saveConsent,
-} from "../../services/consent";
-import type { ConsentChoices } from "../../types/consent.type";
-import PatientShell from "./patientShell";
-import useAccessibility from "../../hooks/useAccessibility";
 
 const languages = [
   { label: "English", code: "en-IN" },
@@ -102,7 +99,7 @@ function emptyChoices(): ConsentChoices {
   };
 }
 
-export default function Consent({ go }: { go: (path: string) => void }) {
+export default function Consent() {
   const { preferredLanguage, setPreferredLanguage } = useAuth();
   const { t } = useAccessibility();
   const [choices, setChoices] = useState<ConsentChoices>(emptyChoices);
@@ -113,7 +110,7 @@ export default function Consent({ go }: { go: (path: string) => void }) {
   const speech = useSpeech(preferredLanguage);
   const stopConsentSpeech = speech.stopSpeaking;
   const explanation = explanations[preferredLanguage] ?? explanations["en-IN"];
-
+  const navigate = useNavigate();
   useEffect(() => {
     let active = true;
     getConsent()
@@ -152,7 +149,7 @@ export default function Consent({ go }: { go: (path: string) => void }) {
         setError("Please grant every required permission before continuing.");
         return;
       }
-      go("/patient/interview");
+      navigate("/patient/interview");
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save consent.");
     } finally {
@@ -173,7 +170,7 @@ export default function Consent({ go }: { go: (path: string) => void }) {
   };
 
   return (
-    <PatientShell active="Converse" go={go}>
+    <PatientShell active="Converse">
       <section className="page-intro">
         <div>
           <span className="eyebrow">{t("consent.eyebrow")}</span>

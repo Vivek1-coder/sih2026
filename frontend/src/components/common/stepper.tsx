@@ -1,11 +1,13 @@
 import { Check } from "lucide-react";
 import type { Step } from "../../types/step.type";
 import useAccessibility from "../../hooks/useAccessibility";
+import { useNavigate } from "react-router-dom";
 
 const steps: Step[] = ["Identify", "Converse", "Scan", "Summarize", "Consult"];
 
 export default function Stepper({ active, go }: { active: Step; go: (path: string) => void }) {
   const { t } = useAccessibility();
+  const navigate = useNavigate();
   const activeIndex = steps.indexOf(active);
   const labels: Record<Step, string> = { Identify: t("step.identify"), Converse: t("step.converse"), Scan: t("step.scan"), Summarize: t("step.summarize"), Consult: t("step.consult") };
   return (
@@ -16,7 +18,7 @@ export default function Stepper({ active, go }: { active: Step; go: (path: strin
           className={`step ${i <= activeIndex ? "done" : ""} ${step === active ? "current" : ""}`}
           onClick={() =>
             i < activeIndex &&
-            go(
+            navigate(
               [
                 "/patient/identify",
                 "/patient/consent",

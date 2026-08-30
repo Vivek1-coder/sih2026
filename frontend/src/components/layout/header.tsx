@@ -1,20 +1,20 @@
 import { CircleHelp, HeartPulse, Languages, Stethoscope, UserRound } from "lucide-react";
 import useAccessibility from "../../hooks/useAccessibility";
 import { supportedLanguages } from "../../i18n/locales";
+import {useNavigate } from "react-router-dom";
 
 export default function Header({
-  go,
   physician = false,
 }: {
-  go: (path: string) => void;
   physician?: boolean;
 }) {
+  const navigate = useNavigate();
   const { language, setLanguage, largeText, toggleLargeText, t } = useAccessibility();
   return (
     <header className="topbar">
       <button
         className="brand"
-        onClick={() => go("/")}
+        onClick={() => navigate("/")}
         aria-label="MediKiosk home"
       >
         <span className="brand-mark">
@@ -53,7 +53,7 @@ export default function Header({
             <span className="desktop-only">Dr. Priya Nair</span>
           </div>
         ) : (
-          <div className="profile">
+          <div className="profile" onClick={()=>navigate("/patient/profile")}>
             <span className="avatar">
               <UserRound size={17} />
             </span>

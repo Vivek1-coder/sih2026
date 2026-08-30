@@ -1,29 +1,93 @@
-"""Consent storage and policy checks for the local demonstration."""
+from datetime import datetime, timezone
 
-from threading import RLock
+from mongoengine.errors import (
+    NotUniqueError,
+    ValidationError as MongoValidationError,
+)
 
-from app.models.consent import ConsentRecord, utc_now
+from app.models.consent import (
+    ConsentChoicesDocument,
+    ConsentRecord,
+)
+
 from app.schemas.consent import ConsentChoices
 
-REQUIRED_CONSENTS = frozenset(
-    {
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+class ConsentService:
+
+    # ======================================================
+    # Required permissions
+    # ======================================================
+
+    REQUIRED_PERMISSIONS = (
         "medical_history",
         "ai_assistance",
         "physician_sharing",
         "privacy_notice",
-    }
-)
+    )
 
+    # ======================================================
+    # Get Consent
+    # ======================================================
 
-class ConsentService:
-    def __init__(self) -> None:
-        # This repository is process-local until the database phase is added.
-        self._records: dict[str, ConsentRecord] = {}
-        self._lock = RLock()
+    def get(
+        self,
+        patient_id: str,
+    ) -> ConsentRecord | None:
+        """
+        Fetch patient's consent directly from MongoDB.
+        """
 
-    def get(self, patient_id: str) -> ConsentRecord | None:
-        with self._lock:
-            return self._records.get(patient_id)
+        if not patient_id:
+            return None
+
+        return ConsentRecord.objects(
+            patient_id=patient_id,
+        ).first()
+
+    # ======================================================
+    # Required Granted
+    # ======================================================
+
+    def required_granted(
+        self,
+        record: ConsentRecord | None,
+    ) -> bool:
+        """
+        Check whether all required permissions
+        have been granted.
+
+        A revoked consent is never considered granted.
+        """
+
+        if record is None:
+            return False
+
+        if record.status != "active":
+            return False
+
+        choices = record.choices
+
+        if choices is None:
+            return False
+
+        return all(
+            getattr(
+                choices,
+                permission,
+                False,
+            )
+            for permission
+            in self.REQUIRED_PERMISSIONS
+        )
+
+    # ======================================================
+    # Save / Update Consent
+    # ======================================================
 
     def save(
         self,
@@ -31,47 +95,162 @@ class ConsentService:
         preferred_language: str,
         choices: ConsentChoices,
     ) -> ConsentRecord:
-        values = choices.model_dump()
-        now = utc_now()
-        with self._lock:
-            existing = self._records.get(patient_id)
-            if existing:
-                existing.preferred_language = preferred_language
-                existing.choices = values
-                existing.status = "active"
-                existing.version += 1
-                existing.updated_at = now
-                existing.granted_at = now
-                existing.revoked_at = None
-                return existing
+        """
+        Create or update patient consent.
 
+        If consent already exists:
+        - update choices
+        - increment version
+        - reactivate consent
+        - clear revoked_at
+
+        If it does not exist:
+        - create version 1
+        """
+
+        now = utc_now()
+
+        choices_document = (
+            ConsentChoicesDocument(
+                **choices.model_dump()
+            )
+        )
+
+        existing = self.get(
+            patient_id
+        )
+
+        # --------------------------------------------------
+        # Create
+        # --------------------------------------------------
+
+        if existing is None:
             record = ConsentRecord(
                 patient_id=patient_id,
-                preferred_language=preferred_language,
-                choices=values,
+
+                preferred_language=(
+                    preferred_language
+                ),
+
+                choices=choices_document,
+
+                status="active",
+
+                version=1,
+
+                granted_at=now,
+
+                updated_at=now,
+
+                revoked_at=None,
             )
-            self._records[patient_id] = record
+
+            try:
+                record.save()
+
+            except NotUniqueError:
+                # Another request may have created
+                # the consent simultaneously.
+                existing = self.get(
+                    patient_id
+                )
+
+                if existing is None:
+                    raise
+
+                return self._update_existing(
+                    existing,
+                    preferred_language,
+                    choices_document,
+                    now,
+                )
+
             return record
 
-    def revoke(self, patient_id: str) -> ConsentRecord | None:
-        with self._lock:
-            record = self._records.get(patient_id)
-            if not record:
-                return None
-            now = utc_now()
-            record.status = "revoked"
-            record.version += 1
-            record.updated_at = now
-            record.revoked_at = now
-            return record
+        # --------------------------------------------------
+        # Update
+        # --------------------------------------------------
 
-    @staticmethod
-    def required_granted(record: ConsentRecord | None) -> bool:
-        return bool(
-            record
-            and record.status == "active"
-            and all(record.choices.get(key, False) for key in REQUIRED_CONSENTS)
+        return self._update_existing(
+            existing,
+            preferred_language,
+            choices_document,
+            now,
         )
+
+    # ======================================================
+    # Update Existing
+    # ======================================================
+
+    def _update_existing(
+        self,
+        record: ConsentRecord,
+        preferred_language: str,
+        choices: ConsentChoicesDocument,
+        now: datetime,
+    ) -> ConsentRecord:
+
+        record.preferred_language = (
+            preferred_language
+        )
+
+        record.choices = choices
+
+        record.status = "active"
+
+        record.version += 1
+
+        # This represents when this new consent
+        # version was granted.
+        record.granted_at = now
+
+        record.updated_at = now
+
+        record.revoked_at = None
+
+        record.save()
+
+        return record
+
+    # ======================================================
+    # Revoke Consent
+    # ======================================================
+
+    def revoke(
+        self,
+        patient_id: str,
+    ) -> ConsentRecord | None:
+        """
+        Revoke patient's active consent.
+
+        The record is NOT deleted because keeping
+        the consent history/state is useful for auditing.
+        """
+
+        record = self.get(
+            patient_id
+        )
+
+        if record is None:
+            return None
+
+        # Make revoke idempotent.
+        if record.status == "revoked":
+            return record
+
+        now = utc_now()
+
+        record.status = "revoked"
+
+        record.revoked_at = now
+
+        record.updated_at = now
+
+        record.version += 1
+
+        record.save()
+
+        return record
 
 
 consent_service = ConsentService()

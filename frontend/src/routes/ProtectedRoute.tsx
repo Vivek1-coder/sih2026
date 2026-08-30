@@ -1,58 +1,139 @@
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
+
+import {
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
 import useAuth from "../hooks/useAuth";
 import { getConsentStatus } from "../services/consent";
 
-export default function ProtectedRoute({
-  children,
-  go,
-  redirectTo = "/patient/identify",
-  requireConsent = false,
-}: {
+interface ProtectedRouteProps {
   children: ReactNode;
-  go: (path: string) => void;
   redirectTo?: string;
   requireConsent?: boolean;
-}) {
+}
+
+export default function ProtectedRoute({
+  children,
+  redirectTo = "/patient/identify",
+  requireConsent = false,
+}: ProtectedRouteProps) {
   const { status } = useAuth();
-  const [consentState, setConsentState] = useState<
-    "checking" | "granted" | "missing"
-  >(requireConsent ? "checking" : "granted");
+  const location = useLocation();
+
+  const [consentState, setConsentState] =
+    useState<
+      "checking" | "granted" | "missing"
+    >(
+      requireConsent
+        ? "checking"
+        : "granted",
+    );
 
   useEffect(() => {
-    if (!requireConsent || status !== "authenticated") return;
+    if (!requireConsent) {
+      setConsentState("granted");
+      return;
+    }
+
+    if (status !== "authenticated") {
+      setConsentState("checking");
+      return;
+    }
+
     let active = true;
-    getConsentStatus()
-      .then((consent) => {
-        if (active) {
-          setConsentState(consent.required_granted ? "granted" : "missing");
+
+    const checkConsent = async () => {
+      try {
+        const consent = await getConsentStatus();
+
+        if (!active) {
+          return;
         }
-      })
-      .catch(() => {
-        if (active) setConsentState("missing");
-      });
+        setConsentState(
+          consent.required_granted
+            ? "granted"
+            : "missing",
+        );
+      } catch {
+        if (active) {
+          setConsentState("missing");
+        }
+      }
+    };
+
+    void checkConsent();
+
     return () => {
       active = false;
     };
   }, [requireConsent, status]);
 
-  useEffect(() => {
-    if (status === "unauthenticated") {
-      go(redirectTo);
-    }
-    if (status === "authenticated" && consentState === "missing") {
-      go("/patient/consent");
-    }
-  }, [consentState, go, redirectTo, status]);
-
-  if (status === "loading" || (requireConsent && consentState === "checking")) {
+  if (status === "loading") {
     return (
-      <main className="route-loading" role="status" aria-live="polite">
+      <main
+        className="route-loading"
+        role="status"
+        aria-live="polite"
+      >
         Checking your secure session…
       </main>
     );
   }
 
-  if (status === "unauthenticated" || consentState === "missing") return null;
+
+  if (status === "unauthenticated") {
+    return (
+      <Navigate
+        to={redirectTo}
+        replace
+        state={{
+          from: location.pathname,
+        }}
+      />
+    );
+  }
+
+  /* =====================================================
+     Checking consent
+  ===================================================== */
+
+  if (
+    requireConsent &&
+    consentState === "checking"
+  ) {
+    return (
+      <main
+        className="route-loading"
+        role="status"
+        aria-live="polite"
+      >
+        Checking your consent permissions…
+      </main>
+    );
+  }
+
+  /* =====================================================
+     Consent required but missing
+  ===================================================== */
+
+  if (
+    requireConsent &&
+    consentState === "missing"
+  ) {
+    return (
+      <Navigate
+        to="/patient/consent"
+        replace
+      />
+    );
+  }
+
+
   return children;
 }

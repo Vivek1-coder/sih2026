@@ -1,11 +1,13 @@
 import { Activity, ArrowRight, AudioLines, Check, ClipboardList, FileText, HeartPulse, Languages, ShieldCheck, Stethoscope, UserRound } from "lucide-react";
 import Header from "../components/layout/header";
 import Footer from "../components/layout/footer";
+import { useNavigate } from "react-router-dom";
 
-export default function Landing({ go }: { go: (path: string) => void }) {
+export default function Landing() {
+  const navigate = useNavigate();
   return (
     <>
-      <Header go={go} />
+      <Header/>
       <main className="landing">
         <section className="hero-section">
           <div className="hero-copy">
@@ -28,13 +30,13 @@ export default function Landing({ go }: { go: (path: string) => void }) {
             <div className="hero-actions">
               <button
                 className="button primary"
-                onClick={() => go("/patient/identify")}
+                onClick={() => navigate("/patient/identify")}
               >
                 Start patient check-in <ArrowRight size={18} />
               </button>
               <button
                 className="button secondary"
-                onClick={() => go("/physician")}
+                onClick={() => navigate("/physician")}
               >
                 <Stethoscope size={18} /> Open physician dashboard
               </button>

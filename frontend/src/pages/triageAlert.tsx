@@ -5,10 +5,11 @@ import PatientShell from "../components/common/patientShell";
 import PriorityBadge from "../components/common/priorityBadge";
 import { getCurrentInterview } from "../services/interview";
 import type { RedFlagAlert } from "../types/interview.type";
+import { useNavigate } from "react-router-dom";
 
-export default function TriageAlert({ go }: { go: (path: string) => void }) {
+export default function TriageAlert() {
   const [alerts, setAlerts] = useState<RedFlagAlert[]>([]);
-
+  const navigate = useNavigate();
   useEffect(() => {
     let active = true;
     getCurrentInterview()
@@ -22,7 +23,7 @@ export default function TriageAlert({ go }: { go: (path: string) => void }) {
   }, []);
 
   return (
-    <PatientShell active="Converse" go={go}>
+    <PatientShell active="Converse">
       <main className="triage-alert-page" role="alert" aria-live="assertive">
         <div className="triage-alert-icon"><AlertTriangle size={38} /></div>
         <PriorityBadge priority="Urgent" />
@@ -39,7 +40,7 @@ export default function TriageAlert({ go }: { go: (path: string) => void }) {
         ))}
         <div className="triage-actions">
           <a className="button primary" href="tel:112"><PhoneCall size={18} /> Call 112 if this is an emergency</a>
-          <button className="button secondary" onClick={() => go("/patient/interview")}>
+          <button className="button secondary" onClick={() => navigate("/patient/interview")}>
             <ArrowLeft size={18} /> Return to answers
           </button>
         </div>
