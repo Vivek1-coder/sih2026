@@ -91,20 +91,19 @@ IdentifierType = Literal[
     "email_or_phone",
 ]
 
-
 class RegisterRequest(BaseModel):
-    full_name: str = Field(
+    fullName: str = Field(
         min_length=2,
         max_length=100,
     )
 
-    date_of_birth: str
+    dateOfBirth: str
 
     gender: str
 
     aadhaar: str
 
-    abha_id: str | None = None
+    abhaId: str | None = None
 
     mobile: str
 
@@ -125,9 +124,9 @@ class RegisterRequest(BaseModel):
         max_length=100,
     )
 
-    emergency_contact: str | None = None
+    emergencyContact: str | None = None
 
-    emergency_contact_relationship: str | None = None
+    relationship: str | None = None
 
     password: str = Field(
         min_length=8,
@@ -952,10 +951,8 @@ def register(
     request: RegisterRequest,
     response: Response,
 ) -> TokenResponse:
-
-    _validate_password_strength(
-        request.password
-    )
+    print("REGISTER ENDPOINT HIT", flush=True)
+    print("REQUEST:", request, flush=True)
 
     aadhaar = _normalize_aadhaar(
         request.aadhaar
@@ -975,9 +972,9 @@ def register(
 
     abha_id = (
         _normalize_abha(
-            request.abha_id
+            request.abhaId
         )
-        if request.abha_id
+        if request.abhaId
         else None
     )
 
@@ -1042,7 +1039,7 @@ def register(
     try:
         date_of_birth = (
             datetime.strptime(
-                request.date_of_birth,
+                request.dateOfBirth,
                 "%Y-%m-%d",
             ).date()
         )
@@ -1073,7 +1070,7 @@ def register(
     # --------------------------------------------------------
 
     user = User(
-        full_name=request.full_name.strip(),
+        full_name=request.fullName.strip(),
         date_of_birth=date_of_birth,
         gender=request.gender,
 
@@ -1089,15 +1086,15 @@ def register(
 
         emergency_contact=(
             _normalize_mobile(
-                request.emergency_contact
+                request.emergencyContact
             )
-            if request.emergency_contact
+            if request.emergencyContact
             else None
         ),
 
         relationship=(
             request
-            .emergency_contact_relationship
+            .relationship
         ),
 
         password_hash=_hash_password(

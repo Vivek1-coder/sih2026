@@ -589,8 +589,9 @@ export default function Identify() {
     setLoading(true);
 
     try {
+      console.log(registerForm);
       const authenticatedUser = await registerPatient(registerForm);
-
+      console.log(authenticatedUser);
       /*
        * /register also issues authentication
        * cookies on the backend, so registration
@@ -602,6 +603,7 @@ export default function Identify() {
         replace: true,
       });
     } catch (registrationError) {
+      console.log(registrationError);
       setError(
         registrationError instanceof Error
           ? registrationError.message

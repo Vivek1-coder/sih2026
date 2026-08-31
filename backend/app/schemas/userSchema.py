@@ -329,11 +329,8 @@ class RefreshRequest(BaseModel):
 
 class AuthUser(BaseModel):
     id: str
-
     auth_method: AuthMethod
-
     display_name: str
-
     is_mock: bool = False
 
 
@@ -344,13 +341,9 @@ class AuthUser(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-
     refresh_token: str
-
     token_type: Literal["bearer"] = "bearer"
-
     expires_in: int
-
     user: AuthUser
 
 
