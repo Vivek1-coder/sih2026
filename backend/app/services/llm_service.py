@@ -1,28 +1,114 @@
 """LLM integration seam used by the interview and summary engines.
 
-Phase 3 uses a deterministic local fallback so the demo never sends medical
-data to an external model. A production adapter can replace this class while
-preserving the engine contract.
+The Groq SDK is used for free-text follow-up question generation.
+All other methods retain the deterministic local implementation so the
+demo works without an API key — set GROQ_API_KEY in .env for live calls.
+"""
+
+import json
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+_SYSTEM_PROMPT = """\
+You are a medical history-taking assistant embedded in a patient kiosk.
+Your only job is to phrase ONE clear, simple follow-up question based on what the patient just said.
+
+STRICT RULES:
+- NEVER offer a diagnosis, prognosis, or medical advice.
+- NEVER reassure or alarm the patient.
+- NEVER ask more than one question.
+- Output ONLY valid JSON — no markdown fences, no prose.
+- The patient may be semi-literate; use simple everyday language.
+
+Required output schema (no other keys):
+{"question_text": "<one follow-up question>", "input_type": "free_text", "options": null}
 """
 
 
 class LLMService:
+    # ------------------------------------------------------------------
+    # Interview: adaptive free-text follow-up (Groq-backed with fallback)
+    # ------------------------------------------------------------------
+
     def generate_free_text_follow_up(
         self,
         latest_answer: str,
         preferred_language: str,
     ) -> str:
-        del preferred_language  # Reserved for a future localized model adapter.
+        """Return one follow-up question text.
+
+        Tries the Groq API first; falls back to the scripted template on
+        any error (missing key, network failure, bad JSON, schema mismatch).
+        The interview must never block because Groq is unavailable.
+        """
+        scripted = self._scripted_follow_up(latest_answer)
+        try:
+            return self._groq_follow_up(latest_answer, preferred_language, scripted)
+        except Exception:  # noqa: BLE001
+            logger.exception("Groq follow-up generation failed; using scripted fallback")
+            return scripted
+
+    def _groq_follow_up(
+        self,
+        latest_answer: str,
+        preferred_language: str,
+        fallback: str,
+    ) -> str:
+        try:
+            from groq import Groq  # noqa: PLC0415
+        except ImportError:
+            logger.warning("groq package not installed; using scripted fallback")
+            return fallback
+
+        from app.core.config import settings  # noqa: PLC0415
+
+        api_key = settings.GROQ_API_KEY.strip()
+        if not api_key:
+            return fallback
+
+        client = Groq(api_key=api_key, timeout=8)
+        user_msg = (
+            f"The patient said: \"{latest_answer.strip()}\". "
+            f"Preferred language: {preferred_language}. "
+            "Ask one appropriate clinical history follow-up question in simple English."
+        )
+        completion = client.chat.completions.create(
+            model=settings.GROQ_MODEL,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.3,
+            max_tokens=120,
+        )
+        raw = completion.choices[0].message.content or ""
+        # Strip markdown code fences if present
+        raw = re.sub(r"^```[a-z]*\n?", "", raw.strip())
+        raw = re.sub(r"\n?```$", "", raw.strip())
+        parsed = json.loads(raw)
+        question_text = parsed.get("question_text", "").strip()
+        if not question_text:
+            return fallback
+        return question_text
+
+    @staticmethod
+    def _scripted_follow_up(latest_answer: str) -> str:
         cleaned = latest_answer.replace("_", " ").strip()
         if cleaned and cleaned not in {"other", "something else"}:
             return (
-                f"You mentioned “{cleaned}”. Please describe when it started, "
+                f"You mentioned \"{cleaned}\". Please describe when it started, "
                 "what it feels like, and what makes it better or worse."
             )
         return (
             "Please describe your main health concern, when it started, and "
             "anything that makes it better or worse."
         )
+
+    # ------------------------------------------------------------------
+    # Summary: deterministic structured draft (unchanged)
+    # ------------------------------------------------------------------
 
     def generate_clinical_summary(
         self,

@@ -20,6 +20,7 @@ export type InterviewAnswer = {
   question_text: string;
   section: string;
   value: string;
+  input_mode: "voice" | "touch" | "text";
   answered_at: string;
 };
 

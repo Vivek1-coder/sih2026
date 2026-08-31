@@ -17,6 +17,7 @@ import useAuth from "../../hooks/useAuth";
 import useAccessibility from "../../hooks/useAccessibility";
 import useSpeech from "../../hooks/useSpeech";
 import { startInterview, submitAnswer } from "../../services/interview";
+import type { InputMode } from "../../services/interview";
 import type { InterviewSession } from "../../types/interview.type";
 import PriorityBadge from "./priorityBadge";
 import PatientShell from "./patientShell";
@@ -37,7 +38,12 @@ function humanize(value: string) {
   return value.replaceAll("_", " ");
 }
 
-export default function Interview() {
+interface InterviewProps {
+  /** Optional navigation override used in tests instead of useNavigate. */
+  go?: (path: string, state?: unknown) => void;
+}
+
+export default function Interview({ go }: InterviewProps) {
   const { preferredLanguage, setPreferredLanguage } = useAuth();
   const { t } = useAccessibility();
   const [session, setSession] = useState<InterviewSession | null>(null);
@@ -45,12 +51,22 @@ export default function Interview() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [readAloud, setReadAloud] = useState(false);
+  const [inputMode, setInputMode] = useState<InputMode>("touch");
   const speech = useSpeech(preferredLanguage);
   const stopInterviewListening = speech.stopListening;
   const stopInterviewSpeech = speech.stopSpeaking;
   const speakQuestion = speech.speak;
   const question = session?.current_question;
   const navigate = useNavigate();
+
+  const navTo = (path: string, state?: unknown) => {
+    if (go) {
+      go(path, state);
+    } else {
+      navigate(path, { state });
+    }
+  };
+
   useEffect(() => {
     let active = true;
     startInterview()
@@ -85,20 +101,35 @@ export default function Interview() {
     [session?.answers],
   );
 
-  const respond = async (value: string) => {
+  const respond = async (value: string, mode: InputMode) => {
     if (!session?.current_question || busy || !value.trim()) return;
     setBusy(true);
     setError("");
+    setInputMode(mode);
     speech.stopListening();
     try {
       const updated = await submitAnswer(
         session.id,
         session.current_question.id,
         value.trim(),
+        mode,
       );
       setSession(updated);
       setPreferredLanguage(updated.preferred_language);
       setAnswer("");
+      setInputMode("touch");
+
+      // Auto-navigate on urgent triage
+      if (updated.triage_required) {
+        navTo("/patient/triage-alert", { alerts: updated.alerts });
+        return;
+      }
+
+      // Auto-navigate on completion
+      if (updated.status === "completed") {
+        navTo("/patient/documents");
+        return;
+      }
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -138,7 +169,7 @@ export default function Interview() {
           </div>
           <button
             className="button secondary"
-            onClick={() => navigate("/patient/triage-alert")}
+            onClick={() => navTo("/patient/triage-alert", { alerts: session.alerts })}
           >
             Open triage alert <ArrowRight size={16} />
           </button>
@@ -147,7 +178,7 @@ export default function Interview() {
 
       <div className="interview-layout">
         <aside className="card interview-sidebar">
-          <div className="progress-ring">
+          <div className="progress-ring" aria-label={`${session?.progress ?? 0}% complete`}>
             <strong>{session?.progress ?? 0}%</strong>
             <span>complete</span>
           </div>
@@ -171,7 +202,12 @@ export default function Interview() {
           )}
         </aside>
 
-        <section className="card conversation" aria-busy={busy}>
+        <section
+          className="card conversation"
+          aria-busy={busy}
+          id="patient-content"
+          tabIndex={-1}
+        >
           {!session && !error && (
             <div className="conversation-loading">
               Preparing your first question…
@@ -189,29 +225,43 @@ export default function Interview() {
                       ? "Generated follow-up · reviewable"
                       : question.section}
                   </span>
-                  <p>{question.text}</p>
+                  <p id="question-text">{question.text}</p>
                 </div>
               </div>
 
-              <div className="suggestions">
-                {question.options.map((option) => (
-                  <button
-                    key={option.value}
-                    disabled={busy}
-                    onClick={() => respond(option.value)}
+              {/* Touch affordance: options for single_choice, scale, and multi_choice */}
+              {(question.input_type === "single_choice" ||
+                question.input_type === "scale" ||
+                question.input_type === "multi_choice") &&
+                question.options.length > 0 && (
+                  <div
+                    className="suggestions"
+                    role="group"
+                    aria-labelledby="question-text"
+                    aria-label="Answer options"
                   >
-                    {option.icon && (
-                      <span className="option-icon" aria-hidden="true">
-                        {option.icon}
-                      </span>
-                    )}
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+                    {question.options.map((option) => (
+                      <button
+                        key={option.value}
+                        disabled={busy}
+                        onClick={() => respond(option.value, "touch")}
+                        aria-label={option.label}
+                      >
+                        {option.icon && (
+                          <span className="option-icon" aria-hidden="true">
+                            {option.icon}
+                          </span>
+                        )}
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
+              {/* Voice + text affordance — always shown */}
               <div
                 className={`voice-input ${speech.listening ? "listening" : ""}`}
+                aria-label="Voice and text answer input"
               >
                 <div className="voice-hint">
                   {speech.listening ? (
@@ -223,7 +273,7 @@ export default function Interview() {
                   )}
                 </div>
                 {speech.listening && (
-                  <div className="waveform">
+                  <div className="waveform" aria-hidden="true">
                     {[2, 5, 8, 4, 10, 6, 3, 9, 5, 7, 3, 8, 4, 6].map(
                       (height, index) => (
                         <i key={index} style={{ height: `${height * 3}px` }} />
@@ -239,10 +289,11 @@ export default function Interview() {
                 <div className="voice-actions">
                   <input
                     aria-label="Your answer"
+                    aria-describedby="question-text"
                     value={answer}
                     onChange={(event) => setAnswer(event.target.value)}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter") respond(answer);
+                      if (event.key === "Enter") respond(answer, "text");
                     }}
                     placeholder="Type your answer here…"
                     disabled={busy}
@@ -253,7 +304,10 @@ export default function Interview() {
                       if (speech.listening) {
                         speech.stopListening();
                       } else {
-                        speech.startListening((text) => setAnswer(text));
+                        speech.startListening((text) => {
+                          setAnswer(text);
+                          setInputMode("voice");
+                        });
                       }
                     }}
                     aria-label={
@@ -274,7 +328,7 @@ export default function Interview() {
                   </button>
                   <button
                     className="mic-button send-answer"
-                    onClick={() => respond(answer)}
+                    onClick={() => respond(answer, inputMode === "voice" ? "voice" : "text")}
                     disabled={!answer.trim() || busy}
                     aria-label="Send answer"
                   >
@@ -287,15 +341,16 @@ export default function Interview() {
                 <button
                   className="text-button"
                   onClick={() => speech.speak(question.text)}
+                  aria-label="Repeat question aloud"
                 >
                   <RotateCcw size={16} /> Repeat question
                 </button>
                 <button
                   className="text-button"
-                  onClick={() => respond("not_sure")}
+                  onClick={() => respond("not_sure", "touch")}
                   disabled={busy}
                 >
-                  I don’t know
+                  I don't know
                 </button>
               </div>
             </>
@@ -312,6 +367,17 @@ export default function Interview() {
           {error && (
             <div className="form-error" role="alert">
               {error}
+              <button
+                className="text-button"
+                onClick={() => {
+                  setError("");
+                  startInterview()
+                    .then((s) => { setSession(s); setPreferredLanguage(s.preferred_language); })
+                    .catch(() => setError("Unable to start interview. Please refresh."));
+                }}
+              >
+                Retry
+              </button>
             </div>
           )}
           {session?.answers.length ? (
@@ -365,17 +431,18 @@ export default function Interview() {
       <div className="bottom-actions">
         <button
           className="button secondary"
-          onClick={() => navigate("/patient/consent")}
+          onClick={() => navTo("/patient/consent")}
         >
           <ChevronLeft size={17} /> Back
         </button>
         <button
           className="button primary"
           onClick={() =>
-            navigate(
+            navTo(
               session?.triage_required
                 ? "/patient/triage-alert"
                 : "/patient/documents",
+              session?.triage_required ? { alerts: session.alerts } : undefined,
             )
           }
           disabled={

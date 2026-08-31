@@ -26,6 +26,7 @@ class InterviewAnswerResponse(BaseModel):
     question_text: str
     section: str
     value: str
+    input_mode: str = "touch"
     answered_at: datetime
 
 
@@ -45,6 +46,7 @@ class StartInterviewRequest(BaseModel):
 class SubmitAnswerRequest(BaseModel):
     question_id: str = Field(min_length=1, max_length=100)
     answer: str = Field(min_length=1, max_length=2000)
+    input_mode: Literal["voice", "touch", "text"] = "touch"
 
 
 class InterviewSessionResponse(BaseModel):

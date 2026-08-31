@@ -1,4 +1,12 @@
-from threading import RLock
+"""Interview session service — MongoDB-backed via MongoEngine.
+
+All session state is persisted to the ``interview_sessions`` collection.
+The in-memory dicts and RLock have been removed; MongoDB provides the
+single source of truth and handles concurrent access.
+
+Public method signatures are identical to the previous in-memory
+implementation so routes, engine, detector, and tests need no changes.
+"""
 
 from fastapi import HTTPException, status
 
@@ -15,10 +23,9 @@ PRIORITY_ORDER = {"routine": 0, "priority": 1, "urgent": 2}
 
 
 class InterviewService:
-    def __init__(self) -> None:
-        self._sessions: dict[str, InterviewSession] = {}
-        self._latest_by_patient: dict[str, str] = {}
-        self._lock = RLock()
+    # ------------------------------------------------------------------
+    # Session lifecycle
+    # ------------------------------------------------------------------
 
     def start_or_resume(
         self,
@@ -26,29 +33,46 @@ class InterviewService:
         preferred_language: str,
         department: str | None = None,
     ) -> InterviewSession:
-        with self._lock:
-            existing = self.current(patient_id)
-            if existing and existing.status == "active":
-                existing.preferred_language = preferred_language
-                existing.updated_at = utc_now()
-                return existing
+        """Return the existing active session or create a new one."""
+        existing = self._active_session(patient_id)
+        if existing:
+            existing.preferred_language = preferred_language
+            existing.updated_at = utc_now()
+            existing.save()
+            return existing
 
-            session = InterviewSession(
-                patient_id=patient_id,
-                preferred_language=preferred_language,
-                department=department,
-                current_question_id=interview_engine.initial_question_id(department),
-            )
-            self._sessions[session.id] = session
-            self._latest_by_patient[patient_id] = session.id
-            return session
+        session = InterviewSession(
+            patient_id=patient_id,
+            preferred_language=preferred_language,
+            department=department,
+            current_question_id=interview_engine.initial_question_id(department),
+        )
+        session.save()
+        return session
 
     def current(self, patient_id: str) -> InterviewSession | None:
-        session_id = self._latest_by_patient.get(patient_id)
-        return self._sessions.get(session_id) if session_id else None
+        """Return the most-recent session for a patient (any status), or None.
+
+        Used by summary_service and the GET /session/current route to fetch
+        the latest session even after it has been completed.
+        """
+        return (
+            InterviewSession.objects(patient_id=patient_id)
+            .order_by("-created_at")
+            .first()
+        )
+
+    def _active_session(self, patient_id: str) -> InterviewSession | None:
+        """Return the active (in-progress) session for a patient, or None."""
+        return (
+            InterviewSession.objects(patient_id=patient_id, status="active")
+            .order_by("-created_at")
+            .first()
+        )
 
     def get_owned(self, session_id: str, patient_id: str) -> InterviewSession:
-        session = self._sessions.get(session_id)
+        """Return session by id, enforcing patient ownership."""
+        session = InterviewSession.objects(pk=session_id).first()
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -61,61 +85,72 @@ class InterviewService:
             )
         return session
 
+    # ------------------------------------------------------------------
+    # Answer submission
+    # ------------------------------------------------------------------
+
     def submit_answer(
         self,
         session_id: str,
         patient_id: str,
         question_id: str,
         value: str,
+        input_mode: str = "touch",
     ) -> InterviewSession:
-        with self._lock:
-            session = self.get_owned(session_id, patient_id)
-            if session.status != "active" or not session.current_question_id:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Interview is already complete",
-                )
-            if question_id != session.current_question_id:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Answer does not match the current question",
-                )
-
-            question = interview_engine.question(session, question_id)
-            answer = InterviewAnswer(
-                session_id=session.id,
-                question_id=question_id,
-                question_text=question["text"],
-                section=question["section"],
-                value=value.strip(),
+        session = self.get_owned(session_id, patient_id)
+        if session.status != "active" or not session.current_question_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Interview is already complete",
             )
-            session.answers.append(answer)
-            self._add_new_alerts(session)
-
-            next_question = interview_engine.next_question_id(
-                session,
-                question_id,
-                value,
+        if question_id != session.current_question_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Answer does not match the current question",
             )
-            session.current_question_id = next_question
-            session.updated_at = utc_now()
-            if next_question is None:
-                session.status = "completed"
-                session.completed_at = session.updated_at
-            return session
+
+        question = interview_engine.question(session, question_id)
+        answer = InterviewAnswer(
+            session_id=session.id,
+            question_id=question_id,
+            question_text=question["text"],
+            section=question["section"],
+            value=value.strip(),
+            input_mode=input_mode,
+        )
+        session.answers.append(answer)
+        self._add_new_alerts(session)
+
+        next_q = interview_engine.next_question_id(session, question_id, value)
+        session.current_question_id = next_q
+        session.updated_at = utc_now()
+        if next_q is None:
+            session.status = "completed"
+            session.completed_at = session.updated_at
+
+        session.save()
+        return session
+
+    # ------------------------------------------------------------------
+    # Manual completion
+    # ------------------------------------------------------------------
 
     def complete(self, session_id: str, patient_id: str) -> InterviewSession:
-        with self._lock:
-            session = self.get_owned(session_id, patient_id)
-            if session.current_question_id is not None:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Required interview questions remain unanswered",
-                )
-            session.status = "completed"
-            session.completed_at = session.completed_at or utc_now()
-            session.updated_at = session.completed_at
-            return session
+        session = self.get_owned(session_id, patient_id)
+        if session.current_question_id is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Required interview questions remain unanswered",
+            )
+        session.status = "completed"
+        session.completed_at = session.completed_at or utc_now()
+        session.updated_at = session.completed_at
+        session.save()
+        return session
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _add_new_alerts(session: InterviewSession) -> None:

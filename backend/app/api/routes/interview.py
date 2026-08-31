@@ -39,6 +39,7 @@ def session_response(session: InterviewSession) -> InterviewSessionResponse:
                 question_text=answer.question_text,
                 section=answer.section,
                 value=answer.value,
+                input_mode=answer.input_mode,
                 answered_at=answer.answered_at,
             )
             for answer in session.answers
@@ -122,6 +123,7 @@ def answer_interview_question(
         patient_id,
         request.question_id,
         request.answer,
+        input_mode=request.input_mode,
     )
     return session_response(session)
 
@@ -136,3 +138,34 @@ def complete_interview(
 ) -> InterviewSessionResponse:
     require_consent(patient_id)
     return session_response(interview_service.complete(session_id, patient_id))
+
+
+@router.get("/session/{session_id}/next-question", response_model=QuestionResponse | None)
+def next_question(
+    session_id: str,
+    patient_id: str = Depends(get_current_patient_id),
+) -> QuestionResponse | None:
+    session = interview_service.get_owned(session_id, patient_id)
+    if not session.current_question_id:
+        return None
+    question = interview_engine.question(session, session.current_question_id)
+    return QuestionResponse.model_validate(question)
+
+
+@router.get("/session/{session_id}/progress")
+def session_progress(
+    session_id: str,
+    patient_id: str = Depends(get_current_patient_id),
+) -> dict:
+    session = interview_service.get_owned(session_id, patient_id)
+    has_urgent = any(alert.priority == "urgent" for alert in session.alerts)
+    if has_urgent:
+        status = "escalated"
+    elif session.status == "completed":
+        status = "complete"
+    else:
+        status = "in_progress"
+    return {
+        "progress": interview_engine.progress(session),
+        "status": status,
+    }

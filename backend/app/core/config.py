@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     COOKIE_DOMAIN: str | None = None
     FRONTEND_ORIGIN: str = "http://localhost:5173"
 
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",
