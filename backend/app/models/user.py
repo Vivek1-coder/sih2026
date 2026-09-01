@@ -78,10 +78,8 @@ class User(Document):
     # Optional ABHA ID / ABHA address
     abha_id = StringField(
         required=False,
-        null=True,
         unique=True,
-        sparse=True,
-        max_length=100,
+        sparse=True
     )
 
     # -----------------------------------------------------
@@ -97,7 +95,6 @@ class User(Document):
 
     email = EmailField(
         required=False,
-        null=True,
         unique=True,
         sparse=True,
     )
@@ -127,13 +124,13 @@ class User(Document):
 
     emergency_contact = StringField(
         required=False,
-        null=True,
+        # null=True,
         max_length=15,
     )
 
     relationship = StringField(
         required=False,
-        null=True,
+        # null=True,
         choices=[
             relationship.value
             for relationship in Relationship
@@ -152,12 +149,12 @@ class User(Document):
     # Store HASH of refresh token, not token itself
     refresh_token_hash = StringField(
         required=False,
-        null=True,
+        # null=True,
     )
 
     refresh_token_expires_at = DateTimeField(
         required=False,
-        null=True,
+        # null=True,
     )
 
     # Allows forcing logout / revoking refresh token
@@ -207,7 +204,7 @@ class User(Document):
 
     last_login_at = DateTimeField(
         required=False,
-        null=True,
+        # null=True,
     )
 
     meta = {

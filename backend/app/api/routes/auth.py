@@ -1069,44 +1069,36 @@ def register(
     # Create user
     # --------------------------------------------------------
 
-    user = User(
-        full_name=request.fullName.strip(),
-        date_of_birth=date_of_birth,
-        gender=request.gender,
+    user_data = {
+        "full_name": request.fullName.strip(),
+        "date_of_birth": date_of_birth,
+        "gender": request.gender,
+        "aadhaar": aadhaar,
+        "mobile": mobile,
+        "address": request.address.strip(),
+        "state": request.state.strip(),
+        "district": request.district.strip(),
+        "password_hash": _hash_password(request.password),
+        "is_active": True,
+        "created_at": _utc_now(),
+        "updated_at": _utc_now(),
+    }
 
-        aadhaar=aadhaar,
-        abha_id=abha_id,
+    if email:
+        user_data["email"] = email
 
-        mobile=mobile,
-        email=email,
+    if abha_id and abha_id is not None:
+        user_data["abha_id"] = abha_id
 
-        address=request.address.strip(),
-        state=request.state.strip(),
-        district=request.district.strip(),
+    if request.emergencyContact:
+        user_data["emergency_contact"] = _normalize_mobile(
+            request.emergencyContact
+        )
 
-        emergency_contact=(
-            _normalize_mobile(
-                request.emergencyContact
-            )
-            if request.emergencyContact
-            else None
-        ),
+    if request.relationship:
+        user_data["relationship"] = request.relationship
 
-        relationship=(
-            request
-            .relationship
-        ),
-
-        password_hash=_hash_password(
-            request.password
-        ),
-
-        is_active=True,
-
-        created_at=_utc_now(),
-        updated_at=_utc_now(),
-    )
-
+    user = User(**user_data)
     try:
         user.save()
 
