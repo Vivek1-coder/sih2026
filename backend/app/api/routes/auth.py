@@ -129,8 +129,8 @@ class RegisterRequest(BaseModel):
     relationship: str | None = None
 
     password: str = Field(
-        min_length=8,
-        max_length=128,
+        # min_length=8,
+        # max_length=128,
     )
 
 
@@ -143,8 +143,8 @@ class PasswordLoginRequest(BaseModel):
     )
 
     password: str = Field(
-        min_length=1,
-        max_length=128,
+        # min_length=1,
+        # max_length=128,
     )
 
 
@@ -253,23 +253,23 @@ def _validate_password_strength(
             detail="Password must contain at least 8 characters",
         )
 
-    if not re.search(r"[A-Z]", password):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Password must contain at least one uppercase letter",
-        )
+    # if not re.search(r"[A-Z]", password):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         detail="Password must contain at least one uppercase letter",
+    #     )
 
-    if not re.search(r"[a-z]", password):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Password must contain at least one lowercase letter",
-        )
+    # if not re.search(r"[a-z]", password):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         detail="Password must contain at least one lowercase letter",
+    #     )
 
-    if not re.search(r"\d", password):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Password must contain at least one number",
-        )
+    # if not re.search(r"\d", password):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         detail="Password must contain at least one number",
+    #     )
 
 
 def _hash_password(
@@ -982,55 +982,55 @@ def register(
     # Duplicate checks
     # --------------------------------------------------------
 
-    if User.objects(
-        aadhaar=aadhaar
-    ).first():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A patient with this Aadhaar "
-                "is already registered"
-            ),
-        )
+    # if User.objects(
+    #     aadhaar=aadhaar
+    # ).first():
+    #     raise HTTPException(
+    #         status_code=status.HTTP_409_CONFLICT,
+    #         detail=(
+    #             "A patient with this Aadhaar "
+    #             "is already registered"
+    #         ),
+    #     )
 
-    if User.objects(
-        mobile=mobile
-    ).first():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A patient with this mobile "
-                "number is already registered"
-            ),
-        )
+    # if User.objects(
+    #     mobile=mobile
+    # ).first():
+    #     raise HTTPException(
+    #         status_code=status.HTTP_409_CONFLICT,
+    #         detail=(
+    #             "A patient with this mobile "
+    #             "number is already registered"
+    #         ),
+    #     )
 
-    if (
-        email
-        and User.objects(
-            email=email
-        ).first()
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A patient with this email "
-                "is already registered"
-            ),
-        )
+    # if (
+    #     email
+    #     and User.objects(
+    #         email=email
+    #     ).first()
+    # ):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_409_CONFLICT,
+    #         detail=(
+    #             "A patient with this email "
+    #             "is already registered"
+    #         ),
+    #     )
 
-    if (
-        abha_id
-        and User.objects(
-            abha_id=abha_id
-        ).first()
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A patient with this ABHA "
-                "is already registered"
-            ),
-        )
+    # if (
+    #     abha_id
+    #     and User.objects(
+    #         abha_id=abha_id
+    #     ).first()
+    # ):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_409_CONFLICT,
+    #         detail=(
+    #             "A patient with this ABHA "
+    #             "is already registered"
+    #         ),
+    #     )
 
     # --------------------------------------------------------
     # DOB parsing
@@ -1110,14 +1110,14 @@ def register(
     try:
         user.save()
 
-    except NotUniqueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "A user with one of these "
-                "identifiers already exists"
-            ),
-        ) from exc
+    # except NotUniqueError as exc:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_409_CONFLICT,
+    #         detail=(
+    #             "A user with one of these "
+    #             "identifiers already exists"
+    #         ),
+    #     ) from exc
 
     except MongoValidationError as exc:
         raise HTTPException(

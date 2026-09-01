@@ -418,6 +418,7 @@ export default function Identify() {
   ======================================================= */
 
   const validateRegistration = () => {
+    return true;
     clearMessages();
 
     /* Full Name */
@@ -490,83 +491,83 @@ export default function Identify() {
 
     const mobile = registerForm.mobile.replace(/\D/g, "");
 
-    if (mobile.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number.");
+    // if (mobile.length !== 10) {
+    //   setError("Please enter a valid 10-digit mobile number.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
-    /* Email */
+    // /* Email */
 
-    if (registerForm.email.trim()) {
-      const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        registerForm.email.trim(),
-      );
+    // if (registerForm.email.trim()) {
+    //   const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    //     registerForm.email.trim(),
+    //   );
 
-      if (!validEmail) {
-        setError("Please enter a valid email address.");
+    //   if (!validEmail) {
+    //     setError("Please enter a valid email address.");
 
-        return false;
-      }
-    }
+    //     return false;
+    //   }
+    // }
 
-    /* Address */
+    // /* Address */
 
-    if (!registerForm.address.trim()) {
-      setError("Please enter your address.");
+    // if (!registerForm.address.trim()) {
+    //   setError("Please enter your address.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
-    /* State */
+    // /* State */
 
-    if (!registerForm.state) {
-      setError("Please select your state.");
+    // if (!registerForm.state) {
+    //   setError("Please select your state.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
     /* District */
 
-    if (!registerForm.district.trim()) {
-      setError("Please enter your district.");
+    // if (!registerForm.district.trim()) {
+    //   setError("Please enter your district.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
     /* Password */
 
-    if (registerForm.password.length < 8) {
-      setError("Password must contain at least 8 characters.");
+    // if (registerForm.password.length < 8) {
+    //   setError("Password must contain at least 8 characters.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
-    if (!/[A-Z]/.test(registerForm.password)) {
-      setError("Password must contain at least one uppercase letter.");
+    // if (!/[A-Z]/.test(registerForm.password)) {
+    //   setError("Password must contain at least one uppercase letter.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
-    if (!/[a-z]/.test(registerForm.password)) {
-      setError("Password must contain at least one lowercase letter.");
+    // if (!/[a-z]/.test(registerForm.password)) {
+    //   setError("Password must contain at least one lowercase letter.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
-    if (!/\d/.test(registerForm.password)) {
-      setError("Password must contain at least one number.");
+    // if (!/\d/.test(registerForm.password)) {
+    //   setError("Password must contain at least one number.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
     /* Confirm Password */
 
-    if (registerForm.password !== registerForm.confirmPassword) {
-      setError("Passwords do not match.");
+    // if (registerForm.password !== registerForm.confirmPassword) {
+    //   setError("Passwords do not match.");
 
-      return false;
-    }
+    //   return false;
+    // }
 
     return true;
   };
