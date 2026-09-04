@@ -1,0 +1,83 @@
+%PDF-1.4
+1 0 obj
+<< /Length 1516 >>
+stream
+BT
+/F1 11 Tf
+50 780 Td
+14 TL
+(DEMO COMMUNITY LABORATORY) Tj T*
+(Patient: Ramesh Kumar    Age: 45M    Date: 2025-03-15) Tj T*
+(Ref. Dr: Dr. Meena Iyer   UHID: DEMO-2025-0031) Tj T*
+() Tj T*
+(COMPLETE BLOOD COUNT \(CBC\)) Tj T*
+(----------------------------------------) Tj T*
+(Parameter          Result    Reference    Flag) Tj T*
+(Haemoglobin        11.2 g/dL  13.0-17.0   LOW *) Tj T*
+(Total WBC          7,400 /uL  4000-11000  Normal) Tj T*
+(Platelets          286,000    150-400K    Normal) Tj T*
+(MCV                72 fL      80-100      LOW *) Tj T*
+(MCH                24 pg      27-33       LOW *) Tj T*
+() Tj T*
+(METABOLIC PANEL) Tj T*
+(----------------------------------------) Tj T*
+(Fasting Glucose    108 mg/dL  70-100      HIGH *) Tj T*
+(HbA1c              6.1 %      <5.7        Pre-diabetic *) Tj T*
+(Creatinine         0.9 mg/dL  0.6-1.2     Normal) Tj T*
+(Urea \(BUN\)         18 mg/dL   7-25        Normal) Tj T*
+(Sodium             138 mEq/L  136-145     Normal) Tj T*
+(Potassium          4.1 mEq/L  3.5-5.1     Normal) Tj T*
+() Tj T*
+(LIPID PROFILE) Tj T*
+(----------------------------------------) Tj T*
+(Total Cholesterol  198 mg/dL  <200        Normal) Tj T*
+(LDL                128 mg/dL  <100        HIGH *) Tj T*
+(HDL                42 mg/dL   >40         Normal) Tj T*
+(Triglycerides      165 mg/dL  <150        HIGH *) Tj T*
+() Tj T*
+(* Abnormal values require clinical correlation.) Tj T*
+(This is a MOCK document for demonstration purposes only.) Tj T*
+(Not for clinical use.) Tj T*
+ET
+endstream
+endobj
+2 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 595 842]
+   /Contents 1 0 R
+   /Resources << /Font << /F1 2 0 R >> >>
+>>
+endobj
+3 0 obj
+<< /Type /Font
+   /Subtype /Type1
+   /BaseFont /Helvetica
+>>
+endobj
+4 0 obj
+<< /Type /Pages
+   /Kids [2 0 R]
+   /Count 1
+>>
+endobj
+5 0 obj
+<< /Type /Catalog
+   /Pages 4 0 R
+>>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000001577 00000 n 
+0000001715 00000 n 
+0000001791 00000 n 
+0000001854 00000 n 
+trailer
+<< /Size 6
+   /Root 5 0 R
+>>
+startxref
+1906
+%%EOF
