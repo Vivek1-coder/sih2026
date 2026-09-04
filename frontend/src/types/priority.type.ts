@@ -1,0 +1,1 @@
+export type Priority = "Routine" | "Priority" | "Urgent";

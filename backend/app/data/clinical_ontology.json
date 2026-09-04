@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "start_question": "department",
+  "questions": {
+    "department": {
+      "text": "Which outpatient department are you visiting today?",
+      "section": "Visit",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "general_medicine", "label": "General medicine", "icon": "🩺"},
+        {"value": "ayurveda", "label": "Ayurveda / AYUSH", "icon": "🌿"}
+      ],
+      "branches": {"ayurveda": "ayush_prakriti", "general_medicine": "chief_complaint"}
+    },
+    "chief_complaint": {
+      "text": "What brings you in today?",
+      "section": "Chief complaint",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "chest_pain", "label": "Chest pain or discomfort", "icon": "🫀"},
+        {"value": "headache", "label": "Headache", "icon": "🧠"},
+        {"value": "abdominal_pain", "label": "Stomach or abdominal pain", "icon": "🤕"},
+        {"value": "cough_fever", "label": "Cough or fever", "icon": "🌡️"},
+        {"value": "stroke_symptoms", "label": "Sudden weakness or speech trouble", "icon": "⚠️"},
+        {"value": "other", "label": "Something else", "icon": "💬"}
+      ],
+      "branches": {
+        "chest_pain": "socrates_site",
+        "abdominal_pain": "socrates_site",
+        "headache": "headache_onset",
+        "cough_fever": "cough_duration",
+        "stroke_symptoms": "neurological_onset",
+        "*": "llm_follow_up"
+      }
+    },
+    "socrates_site": {
+      "text": "Where exactly do you feel the pain or discomfort?",
+      "section": "SOCRATES · Site",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "centre", "label": "Centre", "icon": "🎯"},
+        {"value": "left", "label": "Left side", "icon": "⬅️"},
+        {"value": "right", "label": "Right side", "icon": "➡️"},
+        {"value": "diffuse", "label": "All over", "icon": "↔️"}
+      ],
+      "next": "socrates_onset"
+    },
+    "socrates_onset": {
+      "text": "How did it start?",
+      "section": "SOCRATES · Onset",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "sudden", "label": "Suddenly", "icon": "⚡"},
+        {"value": "gradual", "label": "Gradually", "icon": "📈"},
+        {"value": "after_activity", "label": "After activity or food", "icon": "🏃"}
+      ],
+      "next": "socrates_character"
+    },
+    "socrates_character": {
+      "text": "How would you describe it?",
+      "section": "SOCRATES · Character",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "pressure", "label": "Pressure or heaviness", "icon": "⬇️"},
+        {"value": "sharp", "label": "Sharp or stabbing", "icon": "📍"},
+        {"value": "burning", "label": "Burning", "icon": "🔥"},
+        {"value": "cramping", "label": "Cramping", "icon": "〰️"}
+      ],
+      "next": "socrates_radiation"
+    },
+    "socrates_radiation": {
+      "text": "Does it spread anywhere else?",
+      "section": "SOCRATES · Radiation",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "no_spread", "label": "No", "icon": "✋"},
+        {"value": "arm", "label": "Arm or shoulder", "icon": "💪"},
+        {"value": "jaw_back", "label": "Jaw or back", "icon": "↗️"},
+        {"value": "other_spread", "label": "Somewhere else", "icon": "➡️"}
+      ],
+      "next": "socrates_associations"
+    },
+    "socrates_associations": {
+      "text": "What other symptoms happen with it?",
+      "section": "SOCRATES · Associations",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "none", "label": "None", "icon": "✓"},
+        {"value": "nausea_sweating", "label": "Nausea or sweating", "icon": "💧"},
+        {"value": "shortness_of_breath", "label": "Shortness of breath", "icon": "🫁"},
+        {"value": "dizziness", "label": "Dizziness", "icon": "💫"}
+      ],
+      "next": "socrates_timing"
+    },
+    "socrates_timing": {
+      "text": "Is it constant, or does it come and go?",
+      "section": "SOCRATES · Timing",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "constant", "label": "Constant", "icon": "➖"},
+        {"value": "intermittent", "label": "Comes and goes", "icon": "〰️"},
+        {"value": "worsening", "label": "Getting worse", "icon": "📈"}
+      ],
+      "next": "socrates_exacerbating"
+    },
+    "socrates_exacerbating": {
+      "text": "What makes it better or worse?",
+      "section": "SOCRATES · Exacerbating/relieving",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "activity", "label": "Activity makes it worse", "icon": "🏃"},
+        {"value": "food", "label": "Food affects it", "icon": "🍽️"},
+        {"value": "rest", "label": "Rest helps", "icon": "🛏️"},
+        {"value": "unsure", "label": "Not sure", "icon": "?"}
+      ],
+      "next": "socrates_severity"
+    },
+    "socrates_severity": {
+      "text": "How severe is it from 0 to 10?",
+      "section": "SOCRATES · Severity",
+      "input_type": "scale",
+      "options": [
+        {"value": "2", "label": "Mild · 1–3", "icon": "🙂"},
+        {"value": "5", "label": "Moderate · 4–6", "icon": "😐"},
+        {"value": "8", "label": "Severe · 7–10", "icon": "😣"}
+      ],
+      "next": "breathing_check"
+    },
+    "breathing_check": {
+      "text": "Are you short of breath right now?",
+      "section": "Associated symptoms",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "shortness_of_breath", "label": "Yes", "icon": "🫁"},
+        {"value": "no_breathlessness", "label": "No", "icon": "✓"}
+      ],
+      "next": "past_history"
+    },
+    "headache_onset": {
+      "text": "When did the headache begin?",
+      "section": "Present illness",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "sudden", "label": "Suddenly today", "icon": "⚡"},
+        {"value": "days", "label": "Over the last few days", "icon": "📅"},
+        {"value": "recurrent", "label": "It keeps returning", "icon": "🔁"}
+      ],
+      "next": "neurological_symptoms"
+    },
+    "neurological_symptoms": {
+      "text": "Do you have weakness, facial drooping, vision change, or trouble speaking?",
+      "section": "Neurological symptoms",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "no_neurological_symptoms", "label": "No", "icon": "✓"},
+        {"value": "one_sided_weakness", "label": "One-sided weakness", "icon": "⚠️"},
+        {"value": "face_droop", "label": "Facial drooping", "icon": "⚠️"},
+        {"value": "slurred_speech", "label": "Trouble speaking", "icon": "⚠️"}
+      ],
+      "next": "past_history"
+    },
+    "neurological_onset": {
+      "text": "When did the weakness or speech difficulty start?",
+      "section": "Neurological symptoms",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "within_hour", "label": "Within the last hour", "icon": "🚨"},
+        {"value": "today", "label": "Earlier today", "icon": "⚠️"},
+        {"value": "older", "label": "More than a day ago", "icon": "📅"}
+      ],
+      "next": "past_history"
+    },
+    "cough_duration": {
+      "text": "How long have you had the cough or fever?",
+      "section": "Present illness",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "today", "label": "Started today", "icon": "🕐"},
+        {"value": "few_days", "label": "A few days", "icon": "📅"},
+        {"value": "weeks", "label": "Several weeks", "icon": "🗓️"}
+      ],
+      "next": "breathing_check"
+    },
+    "llm_follow_up": {
+      "generator": "free_text_follow_up",
+      "section": "Present illness",
+      "input_type": "free_text",
+      "options": [
+        {"value": "no_other_details", "label": "No other details", "icon": "✓"},
+        {"value": "not_sure", "label": "I’m not sure", "icon": "?"}
+      ],
+      "next": "past_history"
+    },
+    "past_history": {
+      "text": "Do you have any long-term medical conditions or previous surgeries?",
+      "section": "Past history",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "none", "label": "None", "icon": "✓"},
+        {"value": "diabetes", "label": "Diabetes", "icon": "🩸"},
+        {"value": "hypertension", "label": "High blood pressure", "icon": "❤️"},
+        {"value": "other_history", "label": "Other", "icon": "➕"}
+      ],
+      "next": "medications"
+    },
+    "medications": {
+      "text": "Are you currently taking any medicines?",
+      "section": "Medications",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "none", "label": "No medicines", "icon": "✓"},
+        {"value": "yes_regular", "label": "Yes, regularly", "icon": "💊"},
+        {"value": "unsure", "label": "I’m not sure", "icon": "?"}
+      ],
+      "next": "allergies"
+    },
+    "allergies": {
+      "text": "Do you have any medicine or food allergies?",
+      "section": "Allergies",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "no_known_allergies", "label": "No known allergies", "icon": "✓"},
+        {"value": "medicine_allergy", "label": "Medicine allergy", "icon": "💊"},
+        {"value": "food_allergy", "label": "Food allergy", "icon": "🥜"},
+        {"value": "unsure", "label": "I’m not sure", "icon": "?"}
+      ],
+      "next": "family_history"
+    },
+    "family_history": {
+      "text": "Do close family members have important long-term health conditions?",
+      "section": "Family history",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "none_known", "label": "None known", "icon": "✓"},
+        {"value": "diabetes_hypertension", "label": "Diabetes or high blood pressure", "icon": "🩺"},
+        {"value": "heart_stroke", "label": "Heart disease or stroke", "icon": "❤️"},
+        {"value": "other_family_history", "label": "Other", "icon": "➕"}
+      ],
+      "next": "review_of_systems"
+    },
+    "review_of_systems": {
+      "text": "Apart from what you described, are any other body systems troubling you?",
+      "section": "Review of systems",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "none", "label": "No other symptoms", "icon": "✓"},
+        {"value": "heart_breathing", "label": "Heart or breathing", "icon": "🫁"},
+        {"value": "digestion_urine", "label": "Digestion or urine", "icon": "💧"},
+        {"value": "nerves_joints", "label": "Nerves or joints", "icon": "🦴"}
+      ],
+      "next": "lifestyle"
+    },
+    "lifestyle": {
+      "text": "Which best describes tobacco or alcohol use?",
+      "section": "Lifestyle",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "neither", "label": "Neither", "icon": "✓"},
+        {"value": "tobacco", "label": "Tobacco", "icon": "🚭"},
+        {"value": "alcohol", "label": "Alcohol", "icon": "🥂"},
+        {"value": "both", "label": "Both", "icon": "➕"}
+      ]
+    },
+    "ayush_prakriti": {
+      "text": "How would you describe your usual body constitution (Prakriti)?",
+      "section": "Dashavidha · Prakriti",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "vata", "label": "Vata predominant", "icon": "🌬️"},
+        {"value": "pitta", "label": "Pitta predominant", "icon": "🔥"},
+        {"value": "kapha", "label": "Kapha predominant", "icon": "🌊"},
+        {"value": "unknown", "label": "Not assessed / unsure", "icon": "?"}
+      ],
+      "next": "ayush_vikriti"
+    },
+    "ayush_vikriti": {
+      "text": "Have you noticed a recent change from your usual balance (Vikriti)?",
+      "section": "Dashavidha · Vikriti",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "vata_change", "label": "Vata-like change", "icon": "🌬️"},
+        {"value": "pitta_change", "label": "Pitta-like change", "icon": "🔥"},
+        {"value": "kapha_change", "label": "Kapha-like change", "icon": "🌊"},
+        {"value": "unknown", "label": "Unsure", "icon": "?"}
+      ],
+      "next": "ayush_sara"
+    },
+    "ayush_sara": {
+      "text": "How would you rate tissue excellence and vitality (Sara)?",
+      "section": "Dashavidha · Sara",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "good", "label": "Good", "icon": "●"},
+        {"value": "moderate", "label": "Moderate", "icon": "◐"},
+        {"value": "low", "label": "Low", "icon": "○"}
+      ],
+      "next": "ayush_samhanana"
+    },
+    "ayush_samhanana": {
+      "text": "How would you describe body build and compactness (Samhanana)?",
+      "section": "Dashavidha · Samhanana",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "compact", "label": "Compact / strong", "icon": "💪"},
+        {"value": "moderate", "label": "Moderate", "icon": "◐"},
+        {"value": "delicate", "label": "Delicate", "icon": "○"}
+      ],
+      "next": "ayush_pramana"
+    },
+    "ayush_pramana": {
+      "text": "Has your body proportion or weight changed recently (Pramana)?",
+      "section": "Dashavidha · Pramana",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "stable", "label": "Stable", "icon": "⚖️"},
+        {"value": "gain", "label": "Weight gain", "icon": "⬆️"},
+        {"value": "loss", "label": "Weight loss", "icon": "⬇️"}
+      ],
+      "next": "ayush_satmya"
+    },
+    "ayush_satmya": {
+      "text": "Which foods and climate suit you best (Satmya)?",
+      "section": "Dashavidha · Satmya",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "warm", "label": "Warm foods/climate", "icon": "☀️"},
+        {"value": "cool", "label": "Cool foods/climate", "icon": "❄️"},
+        {"value": "mixed", "label": "Mixed / adaptable", "icon": "⚖️"}
+      ],
+      "next": "ayush_sattva"
+    },
+    "ayush_sattva": {
+      "text": "How is your mental resilience and sleep (Sattva)?",
+      "section": "Dashavidha · Sattva",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "strong", "label": "Calm and resilient", "icon": "🧘"},
+        {"value": "variable", "label": "Variable", "icon": "〰️"},
+        {"value": "low", "label": "Stressed or poor sleep", "icon": "🌙"}
+      ],
+      "next": "ayush_ahara"
+    },
+    "ayush_ahara": {
+      "text": "How are your appetite and digestion (Ahara Shakti)?",
+      "section": "Dashavidha · Ahara Shakti",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "strong", "label": "Strong and regular", "icon": "🍽️"},
+        {"value": "variable", "label": "Variable", "icon": "〰️"},
+        {"value": "low", "label": "Low appetite / indigestion", "icon": "⬇️"}
+      ],
+      "next": "ayush_vyayama"
+    },
+    "ayush_vyayama": {
+      "text": "How much physical exertion can you comfortably tolerate (Vyayama Shakti)?",
+      "section": "Dashavidha · Vyayama Shakti",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "high", "label": "High", "icon": "🏃"},
+        {"value": "moderate", "label": "Moderate", "icon": "🚶"},
+        {"value": "low", "label": "Low", "icon": "🪑"}
+      ],
+      "next": "ayush_vaya"
+    },
+    "ayush_vaya": {
+      "text": "Which life stage best applies for this assessment (Vaya)?",
+      "section": "Dashavidha · Vaya",
+      "input_type": "single_choice",
+      "options": [
+        {"value": "child_youth", "label": "Child / youth", "icon": "🌱"},
+        {"value": "adult", "label": "Adult", "icon": "🌿"},
+        {"value": "older_adult", "label": "Older adult", "icon": "🌳"}
+      ],
+      "next": "chief_complaint"
+    }
+  }
+}
