@@ -32,3 +32,14 @@ export type UploadedDocument = {
   uploaded_at: string;
   updated_at: string;
 };
+
+
+/** Returned by GET /api/documents/{id}/url */
+export type DocumentUrl = {
+  document_id: string;
+  /** Presigned S3 URL — valid for `expires_in` seconds */
+  url: string;
+  expires_in: number;
+  filename: string;
+  content_type: string;
+};

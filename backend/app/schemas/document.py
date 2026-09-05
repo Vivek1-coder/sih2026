@@ -41,3 +41,11 @@ class UploadedDocumentResponse(BaseModel):
 
 class DocumentListResponse(BaseModel):
     documents: list[UploadedDocumentResponse]
+
+
+class DocumentUrlResponse(BaseModel):
+    document_id: str
+    url: str
+    expires_in: int  # seconds until the presigned URL expires
+    filename: str
+    content_type: str

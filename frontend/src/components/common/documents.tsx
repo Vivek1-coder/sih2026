@@ -4,6 +4,8 @@ import {
   Camera,
   Check,
   ChevronLeft,
+  Download,
+  Eye,
   FileText,
   LoaderCircle,
   Paperclip,
@@ -15,6 +17,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getConsent } from "../../services/consent";
 import {
   deleteDocument,
+  downloadDocument,
+  getDocumentUrl,
   listDocuments,
   uploadDocument,
 } from "../../services/documents";
@@ -45,6 +49,8 @@ export default function Documents() {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  // Track per-document loading states for view/download actions
+  const [actionLoading, setActionLoading] = useState<Record<string, "view" | "download" | null>>({});
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -108,6 +114,31 @@ export default function Documents() {
       setDocuments((current) => current.filter((document) => document.id !== documentId));
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to remove document.");
+    }
+  };
+
+  const view = async (documentId: string) => {
+    setError("");
+    setActionLoading((prev) => ({ ...prev, [documentId]: "view" }));
+    try {
+      const { url } = await getDocumentUrl(documentId);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (viewError) {
+      setError(viewError instanceof Error ? viewError.message : "Unable to generate view link.");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [documentId]: null }));
+    }
+  };
+
+  const download = async (documentId: string, filename: string) => {
+    setError("");
+    setActionLoading((prev) => ({ ...prev, [documentId]: "download" }));
+    try {
+      await downloadDocument(documentId, filename);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Unable to download document.");
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [documentId]: null }));
     }
   };
 
@@ -199,6 +230,31 @@ export default function Documents() {
               ) : (
                 <span className="processing"><LoaderCircle className="spin" size={13} /> {document.status}</span>
               )}
+              {/* View in browser */}
+              <button
+                className="remove-file"
+                aria-label={`View ${document.original_filename}`}
+                title="View in browser"
+                disabled={actionLoading[document.id] === "view"}
+                onClick={() => view(document.id)}
+              >
+                {actionLoading[document.id] === "view"
+                  ? <LoaderCircle className="spin" size={15} />
+                  : <Eye size={15} />}
+              </button>
+              {/* Download */}
+              <button
+                className="remove-file"
+                aria-label={`Download ${document.original_filename}`}
+                title="Download"
+                disabled={actionLoading[document.id] === "download"}
+                onClick={() => download(document.id, document.original_filename)}
+              >
+                {actionLoading[document.id] === "download"
+                  ? <LoaderCircle className="spin" size={15} />
+                  : <Download size={15} />}
+              </button>
+              {/* Delete */}
               <button className="remove-file" aria-label={`Remove ${document.original_filename}`} onClick={() => remove(document.id)}>
                 <X size={16} />
               </button>

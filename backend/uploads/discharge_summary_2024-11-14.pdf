@@ -1,0 +1,89 @@
+%PDF-1.4
+1 0 obj
+<< /Length 1448 >>
+stream
+BT
+/F1 11 Tf
+50 780 Td
+14 TL
+(DEMO DISTRICT HOSPITAL ? DISCHARGE SUMMARY) Tj T*
+(Ward: General Medicine   Bed: 14) Tj T*
+(Date of Admission: 2024-11-10   Date of Discharge: 2024-11-14) Tj T*
+() Tj T*
+(Patient: Mohammed Ishaq   Age: 62M   ABHA: DEMO-ABHA-4521) Tj T*
+() Tj T*
+(DIAGNOSIS AT DISCHARGE) Tj T*
+(  1. Community-acquired pneumonia \(right lower lobe\)) Tj T*
+(  2. Type 2 Diabetes Mellitus ? poorly controlled) Tj T*
+(  3. Hypertension ? on treatment) Tj T*
+() Tj T*
+(HISTORY) Tj T*
+(  Admitted with 5-day history of fever, productive cough,) Tj T*
+(  and breathlessness. Known diabetic and hypertensive.) Tj T*
+() Tj T*
+(INVESTIGATIONS) Tj T*
+(  CXR: Right lower lobe consolidation) Tj T*
+(  SpO2 on admission: 91% \(room air\)) Tj T*
+(  Blood glucose on admission: 298 mg/dL) Tj T*
+(  WBC: 14,200 /uL \(raised\)) Tj T*
+(  CRP: 78 mg/L \(raised\)) Tj T*
+() Tj T*
+(TREATMENT GIVEN) Tj T*
+(  IV Ceftriaxone 1g BD x 4 days) Tj T*
+(  IV Metronidazole 500mg TDS x 2 days) Tj T*
+(  Insulin sliding scale) Tj T*
+(  O2 supplementation \(2L NC\)) Tj T*
+() Tj T*
+(DISCHARGE MEDICATIONS) Tj T*
+(  Tab. Amoxicillin-Clavulanate 625 mg BD x 7 days) Tj T*
+(  Tab. Metformin 500 mg BD \(resume\)) Tj T*
+(  Tab. Amlodipine 5 mg OD \(continue\)) Tj T*
+(  Tab. Losartan 50 mg OD \(continue\)) Tj T*
+() Tj T*
+(FOLLOW-UP: Medicine OPD in 1 week) Tj T*
+() Tj T*
+(This is a MOCK document for demonstration purposes only.) Tj T*
+(Not for clinical use.) Tj T*
+ET
+endstream
+endobj
+2 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 595 842]
+   /Contents 1 0 R
+   /Resources << /Font << /F1 2 0 R >> >>
+>>
+endobj
+3 0 obj
+<< /Type /Font
+   /Subtype /Type1
+   /BaseFont /Helvetica
+>>
+endobj
+4 0 obj
+<< /Type /Pages
+   /Kids [2 0 R]
+   /Count 1
+>>
+endobj
+5 0 obj
+<< /Type /Catalog
+   /Pages 4 0 R
+>>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000001509 00000 n 
+0000001647 00000 n 
+0000001723 00000 n 
+0000001786 00000 n 
+trailer
+<< /Size 6
+   /Root 5 0 R
+>>
+startxref
+1838
+%%EOF

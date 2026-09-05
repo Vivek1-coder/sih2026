@@ -1,0 +1,81 @@
+%PDF-1.4
+1 0 obj
+<< /Length 981 >>
+stream
+BT
+/F1 11 Tf
+50 780 Td
+14 TL
+(DR. ANITA SHARMA  MD \(Medicine\)) Tj T*
+(OPD Clinic, Demo General Hospital) Tj T*
+(Date: 2025-04-02   Token: OPD-087) Tj T*
+() Tj T*
+(Patient: Sunita Devi    Age: 38F) Tj T*
+(Diagnosis: Acute upper respiratory tract infection) Tj T*
+() Tj T*
+(Rx) Tj T*
+(----------------------------------------) Tj T*
+(1. Tab. Paracetamol 500 mg) Tj T*
+(   1 tablet TDS x 5 days \(after food\)) Tj T*
+() Tj T*
+(2. Tab. Cetirizine 10 mg) Tj T*
+(   1 tablet OD at night x 5 days) Tj T*
+() Tj T*
+(3. Syp. Ambroxol 30 mg/5 mL) Tj T*
+(   10 mL TDS x 5 days) Tj T*
+() Tj T*
+(4. Tab. Pantoprazole 40 mg) Tj T*
+(   1 tablet OD before breakfast x 5 days) Tj T*
+() Tj T*
+(Advice:) Tj T*
+(  - Warm fluids, steam inhalation) Tj T*
+(  - Avoid cold food and drinks) Tj T*
+(  - Return if fever persists > 3 days) Tj T*
+() Tj T*
+(Known Allergies: Sulfonamides \(rash\)) Tj T*
+() Tj T*
+(This is a MOCK document for demonstration purposes only.) Tj T*
+(Not for clinical use.) Tj T*
+ET
+endstream
+endobj
+2 0 obj
+<< /Type /Page
+   /Parent 3 0 R
+   /MediaBox [0 0 595 842]
+   /Contents 1 0 R
+   /Resources << /Font << /F1 2 0 R >> >>
+>>
+endobj
+3 0 obj
+<< /Type /Font
+   /Subtype /Type1
+   /BaseFont /Helvetica
+>>
+endobj
+4 0 obj
+<< /Type /Pages
+   /Kids [2 0 R]
+   /Count 1
+>>
+endobj
+5 0 obj
+<< /Type /Catalog
+   /Pages 4 0 R
+>>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000001041 00000 n 
+0000001179 00000 n 
+0000001255 00000 n 
+0000001318 00000 n 
+trailer
+<< /Size 6
+   /Root 5 0 R
+>>
+startxref
+1370
+%%EOF

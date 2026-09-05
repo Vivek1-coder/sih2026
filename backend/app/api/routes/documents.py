@@ -12,9 +12,10 @@ from fastapi import (
 )
 
 from app.api.dependencies import get_current_patient_id
-from app.models.document import UploadedDocument
+from app.models.document_record import DocumentRecord
 from app.schemas.document import (
     DocumentListResponse,
+    DocumentUrlResponse,
     ExtractedDocumentResponse,
     LabValueResponse,
     UploadedDocumentResponse,
@@ -39,10 +40,10 @@ def valid_file_signature(suffix: str, content: bytes) -> bool:
     return False
 
 
-def document_response(document: UploadedDocument) -> UploadedDocumentResponse:
+def document_response(document: DocumentRecord) -> UploadedDocumentResponse:
     extraction = document.extraction
     return UploadedDocumentResponse(
-        id=document.id,
+        id=str(document.id),
         original_filename=document.original_filename,
         content_type=document.content_type,
         size_bytes=document.size_bytes,
@@ -85,7 +86,7 @@ def require_document_consent(patient_id: str) -> None:
     if not (
         consent
         and consent.status == "active"
-        and consent.choices.get("document_processing", False)
+        and consent.choices.document_processing
     ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -162,6 +163,53 @@ def document_status(
     patient_id: str = Depends(get_current_patient_id),
 ) -> UploadedDocumentResponse:
     return document_response(document_service.get_owned(document_id, patient_id))
+
+
+@router.get("/{document_id}/url", response_model=DocumentUrlResponse)
+def get_document_url(
+    document_id: str,
+    expires_in: int = 3600,
+    patient_id: str = Depends(get_current_patient_id),
+) -> DocumentUrlResponse:
+    """
+    Return a short-lived presigned GET URL for viewing or downloading the document
+    directly from Supabase S3. The URL is valid for *expires_in* seconds (default 1 h).
+    Use this to open a PDF in the browser or feed the URL to an <img> tag.
+    """
+    document = document_service.get_owned(document_id, patient_id)
+    url = document_service.presigned_url(document_id, patient_id, expires_in)
+    return DocumentUrlResponse(
+        document_id=document_id,
+        url=url,
+        expires_in=expires_in,
+        filename=document.original_filename,
+        content_type=document.content_type,
+    )
+
+
+@router.get("/{document_id}/download")
+def download_document(
+    document_id: str,
+    patient_id: str = Depends(get_current_patient_id),
+) -> Response:
+    """
+    Proxy the file bytes through the API so the browser receives it as a
+    Content-Disposition: attachment download — no S3 URL ever exposed to the client.
+    Suitable for sensitive records where you don't want presigned URLs logged.
+    """
+    content, content_type, filename = document_service.download_bytes(
+        document_id, patient_id
+    )
+    safe_filename = filename.replace('"', '\\"')
+    return Response(
+        content=content,
+        media_type=content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"',
+            "Content-Length": str(len(content)),
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 @router.get("/{document_id}", response_model=UploadedDocumentResponse)

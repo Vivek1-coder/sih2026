@@ -14,9 +14,6 @@ vi.mock("../../services/documents", () => ({
   uploadDocument: mocks.uploadDocument,
   deleteDocument: mocks.deleteDocument,
 }));
-vi.mock("react-router-dom", () => ({
-  useNavigate: () => vi.fn(),
-}));
 vi.mock("../../hooks/useAccessibility", () => ({
   default: () => ({ t: (key: string) => key }),
 }));
