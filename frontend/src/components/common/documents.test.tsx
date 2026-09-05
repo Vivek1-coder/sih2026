@@ -46,7 +46,7 @@ describe("Documents upload flow", () => {
   });
 
   it("uploads a selected PDF after consent is loaded", async () => {
-    const { container } = render(<Documents go={vi.fn()} />);
+    const { container } = render(<Documents/>);
     await screen.findByRole("button", { name: /browse files/i });
     const input = container.querySelector(
       'input[type="file"]',

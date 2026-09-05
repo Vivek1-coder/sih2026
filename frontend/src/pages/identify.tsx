@@ -489,7 +489,7 @@ export default function Identify() {
 
     /* Mobile */
 
-    const mobile = registerForm.mobile.replace(/\D/g, "");
+    // const mobile = registerForm.mobile.replace(/\D/g, "");
 
     // if (mobile.length !== 10) {
     //   setError("Please enter a valid 10-digit mobile number.");

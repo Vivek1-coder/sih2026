@@ -232,7 +232,7 @@ export default function Interview({ go }: InterviewProps) {
               {/* Touch affordance: options for single_choice, scale, and multi_choice */}
               {(question.input_type === "single_choice" ||
                 question.input_type === "scale" ||
-                question.input_type === "multi_choice") &&
+                question.input_type === "free_text") &&
                 question.options.length > 0 && (
                   <div
                     className="suggestions"

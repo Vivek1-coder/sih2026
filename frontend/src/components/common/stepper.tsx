@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 const steps: Step[] = ["Identify", "Converse", "Scan", "Summarize", "Consult"];
 
-export default function Stepper({ active, go }: { active: Step; go: (path: string) => void }) {
+export default function Stepper({ active }: { active: Step }) {
   const { t } = useAccessibility();
   const navigate = useNavigate();
   const activeIndex = steps.indexOf(active);

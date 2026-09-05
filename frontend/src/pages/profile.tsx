@@ -380,39 +380,39 @@ function VerificationBadge({
   );
 }
 
-function DetailItem({
-  icon,
-  label,
-  value,
-  verification,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-  verification?: boolean;
-}) {
-  return (
-    <div className="profile-detail-item">
-      <div className="profile-detail-icon">
-        {icon}
-      </div>
+// function DetailItem({
+//   icon,
+//   label,
+//   value,
+//   verification,
+// }: {
+//   icon: React.ReactNode;
+//   label: string;
+//   value: React.ReactNode;
+//   verification?: boolean;
+// }) {
+//   return (
+//     <div className="profile-detail-item">
+//       <div className="profile-detail-icon">
+//         {icon}
+//       </div>
 
-      <div className="profile-detail-content">
-        <span className="profile-detail-label">
-          {label}
-        </span>
+//       <div className="profile-detail-content">
+//         <span className="profile-detail-label">
+//           {label}
+//         </span>
 
-        <strong>{value}</strong>
+//         <strong>{value}</strong>
 
-        {verification !== undefined && (
-          <VerificationBadge
-            verified={verification}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
+//         {verification !== undefined && (
+//           <VerificationBadge
+//             verified={verification}
+//           />
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
 
 function ProfileField({
   icon,

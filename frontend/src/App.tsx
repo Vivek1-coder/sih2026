@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import {
   Route,
   Routes,
-  useLocation,
-  useNavigate,
+  useLocation
 } from "react-router-dom";
 
 import "./App.css";
