@@ -76,6 +76,9 @@ class DocumentService:
         original_filename: str,
         content_type: str,
         content: bytes,
+        document_type: str = "other",
+        *, uploaded_by_role: str = "patient", uploaded_by_id: str | None = None,
+        session_id: str | None = None,
     ) -> DocumentRecord:
         suffix = Path(original_filename).suffix.lower()
         stored_name = f"{patient_id}/{uuid4().hex}{suffix}"
@@ -92,7 +95,11 @@ class DocumentService:
         )
 
         # 2. Persist metadata to MongoDB
+        from app.services.continuity_service import active_visit, audit
+        session = active_visit(patient_id)
         record = DocumentRecord(
+            uploaded_by_role=uploaded_by_role, uploaded_by_id=uploaded_by_id or patient_id, document_type=document_type,
+            session_id=session_id if uploaded_by_role != "patient" else (session.id if session else None),
             patient_id=patient_id,
             original_filename=Path(original_filename).name,
             stored_path=stored_name,
@@ -101,6 +108,9 @@ class DocumentService:
             status="pending",
         )
         record.save()
+        audit(patient_id, "document_uploaded", session_id=record.session_id,
+              actor_role=record.uploaded_by_role, actor_id=record.uploaded_by_id,
+              event_key=f"upload:{record.id}", metadata={"document_id": str(record.id), "document_type": record.document_type})
         return record
 
     # ------------------------------------------------------------------
@@ -109,13 +119,18 @@ class DocumentService:
 
     def process(self, document_id: str) -> None:
         record = DocumentRecord.objects(id=document_id).first()
-        if not record:
+        if not record or record.status in {"processing", "done"}:
             return
 
         record.status = "processing"
         record.save()
 
         try:
+            if record.uploaded_by_role == "lab_assistant":
+                from app.services.consent_service import consent_service
+                consent = consent_service.get(record.patient_id)
+                if not consent or consent.status != "active" or not consent.choices.document_processing:
+                    raise ValueError("Document-processing consent is no longer active")
             extraction = extract_mock_document(
                 str(record.id),
                 record.stored_path,
@@ -151,11 +166,17 @@ class DocumentService:
             record.inferred_document_date = extraction.document_date
             record.status = "done"
             record.save()
+            from app.services.continuity_service import audit
+            audit(record.patient_id, "document_processed", session_id=record.session_id, actor_role="system",
+                  event_key=f"processed:{record.id}", metadata={"document_id": str(record.id), "uploaded_by_id": record.uploaded_by_id})
 
         except Exception as exc:  # noqa: BLE001
             record.status = "failed"
-            record.error = str(exc)
+            record.error = "Document processing failed. Please contact the care team."
             record.save()
+            from app.services.continuity_service import audit
+            audit(record.patient_id, "document_processing_failed", session_id=record.session_id, actor_role="system",
+                  event_key=f"processing-failed:{record.id}", metadata={"document_id": str(record.id)})
 
     # ------------------------------------------------------------------
     # Ownership check — raises 404 / 403 on failure
@@ -238,6 +259,9 @@ class DocumentService:
         # Remove MongoDB record first; if S3 delete fails the record
         # is already gone so the user won't see a ghost entry.
         record.delete()
+        from app.services.continuity_service import audit
+        audit(patient_id, "document_deleted", session_id=record.session_id,
+              event_key=f"delete:{record.id}", metadata={"document_id": str(record.id)})
 
         _s3_client().delete_object(
             Bucket=settings.SUPABASE_S3_BUCKET,

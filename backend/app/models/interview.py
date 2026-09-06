@@ -77,6 +77,13 @@ class InterviewSession(Document):
     patient_id = StringField(required=True)
     preferred_language = StringField(required=True, default="en-IN")
     department = StringField(null=True)
+    location = StringField(default="")
+    location_type = StringField(choices=["on_site", "remote", "other"], default="other")
+    visit_status = StringField(choices=["in_progress", "completed", "abandoned"], default="in_progress")
+    step = StringField(default="consent", choices=["consent", "interview", "triage-alert", "documents", "summary", "complete"])
+    resumed_from_session_id = StringField(null=True)
+    assigned_doctor_id = StringField(null=True)
+    queue_entry_id = StringField(null=True)
     current_question_id = StringField(null=True)
 
     status = StringField(

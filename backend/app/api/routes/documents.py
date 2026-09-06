@@ -1,10 +1,12 @@
 from pathlib import Path
+from typing import Literal
 
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     File,
+    Form,
     HTTPException,
     Response,
     UploadFile,
@@ -25,25 +27,17 @@ from app.services.document_service import document_service
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
 
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-ALLOWED_CONTENT_TYPES = {"application/pdf", "image/jpeg", "image/png"}
-ALLOWED_SUFFIXES = {".pdf", ".jpg", ".jpeg", ".png"}
-
-
-def valid_file_signature(suffix: str, content: bytes) -> bool:
-    if suffix == ".pdf":
-        return content.startswith(b"%PDF")
-    if suffix in {".jpg", ".jpeg"}:
-        return content.startswith(b"\xff\xd8\xff")
-    if suffix == ".png":
-        return content.startswith(b"\x89PNG\r\n\x1a\n")
-    return False
+from app.services.document_upload import read_document_upload, valid_file_signature
 
 
 def document_response(document: DocumentRecord) -> UploadedDocumentResponse:
     extraction = document.extraction
     return UploadedDocumentResponse(
         id=str(document.id),
+        uploaded_by_role=document.uploaded_by_role,
+        uploaded_by_id=document.uploaded_by_id,
+        session_id=document.session_id,
+        document_type=document.document_type,
         original_filename=document.original_filename,
         content_type=document.content_type,
         size_bytes=document.size_bytes,
@@ -98,35 +92,20 @@ def require_document_consent(patient_id: str) -> None:
 async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    document_type: Literal["lab_report", "prescription", "other"] = Form("other"),
     patient_id: str = Depends(get_current_patient_id),
 ) -> UploadedDocumentResponse:
     require_document_consent(patient_id)
-    filename = Path(file.filename or "upload").name
-    suffix = Path(filename).suffix.lower()
-    if suffix not in ALLOWED_SUFFIXES or file.content_type not in (
-        ALLOWED_CONTENT_TYPES | {"application/octet-stream"}
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Only PDF, JPG, JPEG, and PNG files are supported",
-        )
-    content = await file.read(MAX_UPLOAD_BYTES + 1)
-    await file.close()
-    if not content:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty")
-    if len(content) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="File exceeds the 10 MB limit")
-    if not valid_file_signature(suffix, content):
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="File contents do not match the PDF/JPG/PNG extension",
-        )
+    from app.services.continuity_service import require_visit
+    require_visit(patient_id)
+    filename, content_type, content = await read_document_upload(file)
 
     document = document_service.create(
         patient_id,
         filename,
-        file.content_type or "application/octet-stream",
+        content_type,
         content,
+        document_type=document_type,
     )
     background_tasks.add_task(document_service.process, document.id)
     return document_response(document)

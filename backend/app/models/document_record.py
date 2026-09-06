@@ -75,6 +75,11 @@ class DocumentRecord(Document):
     # Who owns this document
     patient_id = StringField(required=True)
 
+    uploaded_by_role = StringField(choices=["patient", "lab_assistant", "doctor", "system"], default="system")
+    uploaded_by_id = StringField(null=True)
+    session_id = StringField(null=True)
+    document_type = StringField(choices=["lab_report", "prescription", "other"], default="other")
+
     # Original filename as supplied by the browser
     original_filename = StringField(required=True, max_length=500)
 

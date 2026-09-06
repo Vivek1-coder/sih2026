@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     COOKIE_DOMAIN: str | None = None
     FRONTEND_ORIGIN: str = "http://localhost:5173"
 
+    MEDIKIOSK_LOCATIONS: list[str] = []
+
     # Groq LLM
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"

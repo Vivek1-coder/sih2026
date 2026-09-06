@@ -165,6 +165,7 @@ class ConsentService:
                     now,
                 )
 
+            self._audit(record)
             return record
 
         # --------------------------------------------------
@@ -209,12 +210,49 @@ class ConsentService:
         record.revoked_at = None
 
         record.save()
-
+        self._audit(record)
         return record
+
+    @staticmethod
+    def _audit(record):
+        from app.services.continuity_service import active_visit, audit
+        session = active_visit(record.patient_id)
+        audit(record.patient_id, "consent_updated", session_id=session.id if session else None,
+              event_key=f"consent:{record.id}:{record.version}",
+              metadata={"version": record.version, "choices": record.choices.to_mongo().to_dict()})
 
     # ======================================================
     # Revoke Consent
     # ======================================================
+
+    def capture_document_authorization(self, patient_id: str, actor_id: str) -> ConsentRecord:
+        """Lab attestation records document permission only; it never grants AI/clinical consent."""
+        from app.services.continuity_service import audit
+        consent = self.get(patient_id)
+        if consent and consent.status == "active" and consent.choices.document_processing:
+            return consent
+        choices = consent.choices if consent and consent.status == "active" else ConsentChoicesDocument()
+        choices.document_processing = True
+        now = utc_now()
+        if consent:
+            updated = ConsentRecord.objects(pk=consent.pk, version=consent.version, status=consent.status).modify(
+                new=True, set__choices=choices, set__status="active", set__revoked_at=None,
+                set__updated_at=now, set__granted_at=now, inc__version=1)
+            if not updated:
+                from fastapi import HTTPException
+                raise HTTPException(409, "Consent changed. Verify patient authorization again.")
+            consent = updated
+        else:
+            try:
+                consent = ConsentRecord(patient_id=patient_id, choices=choices, status="active", version=1,
+                                        granted_at=now, updated_at=now).save(force_insert=True)
+            except NotUniqueError:
+                from fastapi import HTTPException
+                raise HTTPException(409, "Consent changed. Verify patient authorization again.")
+        audit(patient_id, "consent_updated", actor_role="lab_assistant", actor_id=actor_id,
+              event_key=f"consent:{consent.id}:{consent.version}",
+              metadata={"document_processing": True, "patient_authorization_attested": True})
+        return consent
 
     def revoke(
         self,
@@ -249,7 +287,8 @@ class ConsentService:
         record.version += 1
 
         record.save()
-
+        from app.services.continuity_service import audit
+        audit(patient_id, "consent_revoked", event_key=f"consent:{record.id}:{record.version}")
         return record
 
 

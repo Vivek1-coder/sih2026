@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-import {
-  Route,
-  Routes,
-  useLocation
-} from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 
 import "./App.css";
 
@@ -15,8 +11,11 @@ import Physician from "./pages/physician";
 import Consultation from "./pages/consultationPage";
 import NotFound from "./pages/notFound";
 import TriageAlert from "./pages/triageAlert";
-import Profile from "./pages/profile";
+import Profile from "./pages/patientProfile";
+import PatientHome from "./pages/patientHome";
+import PatientLocation from "./pages/patientLocation";
 import Consent from "./pages/consent";
+import LabWorkflow from "./pages/lab";
 
 import Interview from "./components/common/interview";
 import Documents from "./components/common/documents";
@@ -35,7 +34,9 @@ export default function App() {
 
     window.requestAnimationFrame(() => {
       document
-        .getElementById("patient-content")
+        .querySelector<HTMLElement>(
+          "#patient-content, #lab-content, #physician-content, .consult-main",
+        )
         ?.focus();
     });
   }, [location.pathname]);
@@ -43,20 +44,36 @@ export default function App() {
   return (
     <Routes>
       <Route
-        path="/"
-        element={<Landing  />}
+        path="/lab"
+        element={
+          <LabWorkflow />
+        }
       />
-
       <Route
-        path="/patient/identify"
-        element={<Identify  />}
+        path="/patient/home"
+        element={
+          <ProtectedRoute>
+            <PatientHome />
+          </ProtectedRoute>
+        }
       />
+      <Route
+        path="/patient/location"
+        element={
+          <ProtectedRoute>
+            <PatientLocation />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/" element={<Landing />} />
+
+      <Route path="/patient/identify" element={<Identify />} />
 
       <Route
         path="/patient/consent"
         element={
-          <ProtectedRoute>
-            <Consent  />
+          <ProtectedRoute requireVisit>
+            <Consent />
           </ProtectedRoute>
         }
       />
@@ -64,8 +81,8 @@ export default function App() {
       <Route
         path="/patient/interview"
         element={
-          <ProtectedRoute requireConsent>
-            <Interview  />
+          <ProtectedRoute requireConsent requireVisit>
+            <Interview />
           </ProtectedRoute>
         }
       />
@@ -73,8 +90,8 @@ export default function App() {
       <Route
         path="/patient/triage-alert"
         element={
-          <ProtectedRoute requireConsent>
-            <TriageAlert  />
+          <ProtectedRoute requireConsent requireVisit>
+            <TriageAlert />
           </ProtectedRoute>
         }
       />
@@ -82,8 +99,8 @@ export default function App() {
       <Route
         path="/patient/documents"
         element={
-          <ProtectedRoute requireConsent>
-            <Documents  />
+          <ProtectedRoute requireConsent requireVisit>
+            <Documents />
           </ProtectedRoute>
         }
       />
@@ -91,8 +108,8 @@ export default function App() {
       <Route
         path="/patient/summary"
         element={
-          <ProtectedRoute requireConsent>
-            <Summary  />
+          <ProtectedRoute requireConsent requireVisit>
+            <Summary />
           </ProtectedRoute>
         }
       />
@@ -101,7 +118,7 @@ export default function App() {
         path="/patient/complete"
         element={
           <ProtectedRoute requireConsent>
-            <Complete  />
+            <Complete />
           </ProtectedRoute>
         }
       />
@@ -109,7 +126,7 @@ export default function App() {
       <Route
         path="/patient/profile"
         element={
-          <ProtectedRoute requireConsent>
+          <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
         }
@@ -117,18 +134,19 @@ export default function App() {
 
       <Route
         path="/physician"
-        element={<Physician  />}
+        element={
+          <Physician />
+        }
       />
 
       <Route
         path="/physician/patient/:patientId"
-        element={<Consultation  />}
+        element={
+          <Consultation />
+        }
       />
 
-      <Route
-        path="*"
-        element={<NotFound  />}
-      />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

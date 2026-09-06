@@ -76,6 +76,10 @@ def start_interview(
     patient_id: str = Depends(get_current_patient_id),
 ) -> InterviewSessionResponse:
     require_consent(patient_id)
+    from app.services.continuity_service import require_visit
+    visit = require_visit(patient_id)
+    if visit.status == "completed":
+        return session_response(visit)
     consent = consent_service.get(patient_id)
     if consent is None:  # Narrowing for type checkers; require_consent handled it.
         raise HTTPException(status_code=403, detail="Consent required")
@@ -118,6 +122,9 @@ def answer_interview_question(
     patient_id: str = Depends(get_current_patient_id),
 ) -> InterviewSessionResponse:
     require_consent(patient_id)
+    from app.services.continuity_service import require_visit
+    if require_visit(patient_id).id != session_id:
+        raise HTTPException(409, "This is not the current visit")
     session = interview_service.submit_answer(
         session_id,
         patient_id,

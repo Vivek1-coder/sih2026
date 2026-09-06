@@ -328,6 +328,7 @@ class RefreshRequest(BaseModel):
 
 
 class AuthUser(BaseModel):
+    role: Literal["patient", "doctor", "lab_assistant"] = "patient"
     id: str
     auth_method: AuthMethod
     display_name: str
@@ -381,7 +382,7 @@ class UserResponse(BaseModel):
 
     abha_id: str | None = None
 
-    mobile: str
+    mobile: str | None = None
 
     email: EmailStr | None = None
 

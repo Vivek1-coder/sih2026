@@ -190,7 +190,7 @@ function getApiError(
     message =
       "Unable to connect to the server.";
   }
-  console.log(message);
+
   return new AuthApiError(
     message,
     status,
@@ -369,7 +369,7 @@ export async function registerPatient(
   input: RegisterForm,
 ): Promise<AuthUser> {
   try {
-    console.log(input);
+
     const response =
       await authApi.post<TokenResponse>(
         "/register",
@@ -378,7 +378,7 @@ export async function registerPatient(
 
     return response.data.user;
   } catch (error) {
-    console.log("Error",error);
+
     throw getApiError(error);
   }
 }

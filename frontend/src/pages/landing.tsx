@@ -16,8 +16,6 @@ import {
   Sparkles,
   Stethoscope,
   UserRound,
-  AlertCircle,
-  History,
   Pill,
   ShieldAlert,
   Users,
@@ -80,14 +78,13 @@ const workflowSteps: WorkflowStep[] = [
 /** Reveals its target once, the first time it scrolls into view. */
 function useInView<T extends HTMLElement>(threshold = 0.25) {
   const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(false);
+  const [inView, setInView] = useState(() => typeof IntersectionObserver === "undefined");
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
 
     if (typeof IntersectionObserver === "undefined") {
-      setInView(true);
       return;
     }
 

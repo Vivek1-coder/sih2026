@@ -36,4 +36,13 @@ def get_current_token_payload(request: Request) -> dict[str, Any]:
 def get_current_patient_id(request: Request) -> str:
     """Return the authenticated patient subject from the access token."""
 
-    return str(get_current_token_payload(request)["sub"])
+    payload = get_current_token_payload(request)
+    if payload.get("role") == "lab_assistant":
+        raise HTTPException(403, "Lab staff must use the lab workflow")
+    return str(payload["sub"])
+
+
+def get_current_lab_assistant():
+    """Fixed desk identity for the account-free prototype."""
+    from app.services.prototype_staff import LAB_ASSISTANT
+    return LAB_ASSISTANT

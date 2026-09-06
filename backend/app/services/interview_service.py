@@ -65,7 +65,7 @@ class InterviewService:
     def _active_session(self, patient_id: str) -> InterviewSession | None:
         """Return the active (in-progress) session for a patient, or None."""
         return (
-            InterviewSession.objects(patient_id=patient_id, status="active")
+            InterviewSession.objects(patient_id=patient_id, status="active", visit_status="in_progress")
             .order_by("-created_at")
             .first()
         )
@@ -128,7 +128,18 @@ class InterviewService:
             session.status = "completed"
             session.completed_at = session.updated_at
 
-        session.save()
+        session.step = "triage-alert" if any(a.priority == "urgent" for a in session.alerts) else ("documents" if next_q is None else "interview")
+        saved = InterviewSession.objects(pk=session.id, current_question_id=question_id, status="active", visit_status="in_progress").modify(
+            new=True, set__answers=session.answers, set__alerts=session.alerts,
+            set__department=session.department,
+            set__priority=session.priority, set__current_question_id=session.current_question_id,
+            set__status=session.status, set__step=session.step,
+            set__updated_at=session.updated_at, set__completed_at=session.completed_at)
+        if saved is None:
+            raise HTTPException(409, "This answer was already submitted or the visit changed")
+        session = saved
+        from app.services.continuity_service import audit
+        audit(patient_id, "answer_submitted", session_id=session.id, event_key=f"answer:{answer.id}", metadata={"question_id": question_id, "answer_id": answer.id})
         return session
 
     # ------------------------------------------------------------------

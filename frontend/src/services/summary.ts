@@ -21,8 +21,9 @@ export async function updateSummary(
     status?: "draft" | "confirmed";
     patient_acknowledged?: boolean;
   },
+  physician = false,
 ): Promise<ClinicalSummary> {
-  const response = await apiFetch(`/api/summary/${summaryId}`, {
+  const response = await apiFetch(physician ? `/api/physician/summary/${summaryId}` : `/api/summary/${summaryId}`, {
     method: "PATCH",
     body: JSON.stringify(changes),
   });

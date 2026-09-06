@@ -22,6 +22,9 @@ vi.mock("./patientShell", () => ({
     <div>{children}</div>
   ),
 }));
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => vi.fn(),
+}));
 
 describe("Documents upload flow", () => {
   beforeEach(() => {
@@ -54,7 +57,7 @@ describe("Documents upload flow", () => {
     const file = new File(["%PDF"], "report.pdf", { type: "application/pdf" });
     fireEvent.change(input, { target: { files: [file] } });
     await waitFor(() =>
-      expect(mocks.uploadDocument).toHaveBeenCalledWith(file),
+      expect(mocks.uploadDocument).toHaveBeenCalledWith(file, "other"),
     );
   });
 });

@@ -2,6 +2,37 @@
 
 :root {
   --font-scale: 1;
+
+  /* Blue design system (from landing page) */
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-deep: #1e3a8a;
+  --primary-light: #dbeafe;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --surface: #ffffff;
+  --background: #f3f6fb;
+  --line: rgba(30, 64, 175, 0.13);
+  --card-radius: 18px;
+  --card-radius-sm: 12px;
+  --shadow-card: 0 14px 40px rgba(15, 23, 42, 0.09);
+  --shadow-card-hover: 0 26px 60px rgba(30, 64, 175, 0.14);
+  --glass-surface: rgba(255, 255, 255, 0.88);
+  --glass-line: rgba(30, 64, 175, 0.13);
+
+  /* Semantic colors */
+  --red: #dc2626;
+  --red-surface: #fef2f2;
+  --red-border: rgba(220, 38, 38, 0.18);
+  --amber: #d97706;
+  --amber-surface: #fffbeb;
+  --amber-border: rgba(217, 119, 6, 0.18);
+  --green: #16a34a;
+  --green-surface: #f0fdf4;
+  --green-border: rgba(22, 163, 74, 0.18);
+  --purple: #6366f1;
+  --purple-surface: #eef2ff;
+
   font-family:
     Inter,
     ui-sans-serif,
@@ -10,20 +41,62 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  color: #18343b;
-  background: #f7fbfb;
+  color: var(--ink);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
   min-width: 320px;
+  min-height: 100vh;
   font-size: calc(16px * var(--font-scale));
+  color: var(--ink);
+  background-color: var(--background);
+  position: relative;
+  isolation: isolate;
 }
+
+/*
+  4-layer interlocked petal rosette — identical to .landing-page::before
+  in landing.css. Four half-tile offsets overlap the flowers so the
+  entire page is filled and intersections become naturally darker.
+*/
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cg%20fill%3D%22%232563eb%22%20fill-opacity%3D%22.022%22%20stroke%3D%22%232563eb%22%20stroke-opacity%3D%22.105%22%20stroke-width%3D%221.0%22%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%206%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%20154%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%20154%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%206%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%228%22%20fill%3D%22%231e40af%22%20fill-opacity%3D%22.085%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cg%20fill%3D%22%232563eb%22%20fill-opacity%3D%22.022%22%20stroke%3D%22%232563eb%22%20stroke-opacity%3D%22.105%22%20stroke-width%3D%221.0%22%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%206%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%20154%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%20154%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%206%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%228%22%20fill%3D%22%231e40af%22%20fill-opacity%3D%22.085%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cg%20fill%3D%22%232563eb%22%20fill-opacity%3D%22.022%22%20stroke%3D%22%232563eb%22%20stroke-opacity%3D%22.105%22%20stroke-width%3D%221.0%22%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%206%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%20154%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%20154%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%206%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%228%22%20fill%3D%22%231e40af%22%20fill-opacity%3D%22.085%22%2F%3E%3C%2Fsvg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22160%22%20height%3D%22160%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cg%20fill%3D%22%232563eb%22%20fill-opacity%3D%22.022%22%20stroke%3D%22%232563eb%22%20stroke-opacity%3D%22.105%22%20stroke-width%3D%221.0%22%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%206%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%20154%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%2080%20154%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A56%2056%200%200%201%206%2080%20A56%2056%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%20134%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%20134%20A61%2061%200%200%201%2080%2080Z%22/%3E%3Cpath%20d%3D%22M80%2080%20A61%2061%200%200%201%2026%2026%20A61%2061%200%200%201%2080%2080Z%22/%3E%3C%2Fg%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%228%22%20fill%3D%22%231e40af%22%20fill-opacity%3D%22.085%22%2F%3E%3C%2Fsvg%3E");
+
+  background-size:
+    160px 160px,
+    160px 160px,
+    160px 160px,
+    160px 160px;
+
+  background-position:
+    0 0,
+    80px 0,
+    0 80px,
+    80px 80px;
+
+  background-repeat: repeat;
+  background-blend-mode: multiply;
+  opacity: 0.82;
+}
+
+
 button,
 input,
 select,
@@ -36,4 +109,29 @@ button {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute;
+  top: -50px;
+  left: 16px;
+  z-index: 9999;
+  padding: 10px 16px;
+  background: var(--primary);
+  color: white;
+  border-radius: 0 0 10px 10px;
+  font-weight: 700;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

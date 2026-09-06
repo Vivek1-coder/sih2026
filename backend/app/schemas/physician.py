@@ -1,4 +1,5 @@
 from typing import Any, Literal
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -9,6 +10,12 @@ from app.schemas.summary import ClinicalHistorySummaryResponse
 
 
 class PhysicianQueueEntryResponse(BaseModel):
+    session_id: str = ""
+    doctor_id: str | None = None
+    doctor_name: str | None = None
+    location: str = ""
+    added_at: datetime | None = None
+    status: str = "waiting"
     patient_id: str
     summary_id: str
     token: str

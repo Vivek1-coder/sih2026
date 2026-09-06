@@ -1,3 +1,5 @@
+import DocumentFilePicker from "./DocumentFilePicker";
+import { finishDocuments } from "../../services/patient";
 import {
   AlertTriangle,
   ArrowRight,
@@ -44,6 +46,7 @@ function formatDate(value: string | null) {
 
 export default function Documents() {
   const { t } = useAccessibility();
+  const [documentType, setDocumentType] = useState("other");
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [documentConsent, setDocumentConsent] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -51,7 +54,6 @@ export default function Documents() {
   const [error, setError] = useState("");
   // Track per-document loading states for view/download actions
   const [actionLoading, setActionLoading] = useState<Record<string, "view" | "download" | null>>({});
-  const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const refresh = useCallback(async () => {
@@ -97,7 +99,7 @@ export default function Documents() {
     }
     setUploading(true);
     try {
-      const uploaded = await Promise.all(files.map((file) => uploadDocument(file)));
+      const uploaded = await Promise.all(files.map((file) => uploadDocument(file, documentType)));
       setDocuments((current) => [...uploaded, ...current]);
       await refresh();
     } catch (uploadError) {
@@ -146,6 +148,11 @@ export default function Documents() {
 
   return (
     <PatientShell active="Scan">
+      <label className="continuity-form">{t("patient.documents")}
+        <select value={documentType} onChange={event => setDocumentType(event.target.value)}>
+          {["lab_report", "prescription", "other"].map(value => <option key={value} value={value}>{t(`document.${value}`)}</option>)}
+        </select>
+      </label>
       <section className="page-intro">
         <div>
           <span className="eyebrow">{t("documents.eyebrow")}</span>
@@ -178,14 +185,7 @@ export default function Documents() {
           <h2>Drop documents here</h2>
           <p>or choose files from your device</p>
           <small>PDF, JPG, JPEG or PNG · up to 10 MB each</small>
-          <input
-            ref={fileInput}
-            className="visually-hidden"
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-            multiple
-            onChange={(event) => event.target.files && addFiles(event.target.files)}
-          />
+          <DocumentFilePicker multiple disabled={!documentConsent || uploading} label={uploading ? "Uploading…" : "Browse files"} onFiles={addFiles}/>
           <input
             ref={cameraInput}
             className="visually-hidden"
@@ -194,14 +194,6 @@ export default function Documents() {
             capture="environment"
             onChange={(event) => event.target.files && addFiles(event.target.files)}
           />
-          <button
-            className="button secondary"
-            disabled={!documentConsent || uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            {uploading ? <LoaderCircle className="spin" size={17} /> : <Paperclip size={17} />}
-            {uploading ? "Uploading…" : "Browse files"}
-          </button>
           <button
             className="camera-button"
             disabled={!documentConsent || uploading}
@@ -308,7 +300,7 @@ export default function Documents() {
         <button className="button secondary" onClick={() => navigate("/patient/interview")}>
           <ChevronLeft size={17} /> Back
         </button>
-        <button className="button primary" onClick={() => navigate("/patient/summary")} disabled={processing || uploading}>
+        <button className="button primary" onClick={async () => { try { await finishDocuments(); navigate("/patient/summary"); } catch (reason) { setError(reason instanceof Error ? reason.message : "Unable to continue"); } }} disabled={processing || uploading}>
           Review my summary <ArrowRight size={17} />
         </button>
       </div>

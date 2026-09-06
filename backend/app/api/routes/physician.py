@@ -4,7 +4,8 @@ from app.api.dependencies import get_current_patient_id
 from app.api.routes.abdm import abdm_response
 from app.api.routes.documents import document_response
 from app.api.routes.interview import session_response
-from app.api.routes.summary import summary_response
+from app.api.routes.summary import summary_response, update_summary
+from app.schemas.summary import SummaryPatchRequest
 from app.schemas.physician import (
     PhysicianPatientSummaryResponse,
     PhysicianQueueEntryResponse,
@@ -16,15 +17,15 @@ from app.services.interview_service import interview_service
 from app.services.queue_service import queue_service
 from app.services.summary_service import summary_service
 
+from app.api.routes.prescriptions import current_doctor
+
 router = APIRouter(prefix="/api/physician", tags=["physician"])
 
 
 @router.get("/queue", response_model=PhysicianQueueResponse)
-def physician_queue() -> PhysicianQueueResponse:
-    # The physician role is intentionally unauthenticated in this mock-only demo.
-    # Production must enforce clinician identity and facility-scoped access here.
+def physician_queue(doctor=Depends(current_doctor)) -> PhysicianQueueResponse:
     return PhysicianQueueResponse(
-        patients=[PhysicianQueueEntryResponse.model_validate(entry) for entry in queue_service.entries()]
+        patients=[PhysicianQueueEntryResponse.model_validate(entry) for entry in queue_service.entries(doctor.id)]
     )
 
 
@@ -39,10 +40,12 @@ def my_queue_status(
     "/patient/{patient_id}/summary",
     response_model=PhysicianPatientSummaryResponse,
 )
-def physician_patient_summary(patient_id: str) -> PhysicianPatientSummaryResponse:
+def physician_patient_summary(patient_id: str, doctor=Depends(current_doctor)) -> PhysicianPatientSummaryResponse:
     entry = PhysicianQueueEntryResponse.model_validate(queue_service.for_patient(patient_id))
-    summary = summary_service.current(patient_id)
-    session = interview_service.current(patient_id)
+    if entry.doctor_id != doctor.id:
+        raise HTTPException(403, "Patient is not assigned to this physician")
+    summary = summary_service.get_owned(entry.summary_id, patient_id)
+    session = interview_service.get_owned(entry.session_id, patient_id)
     if not summary or not session:
         raise HTTPException(status_code=404, detail="Consultation data is incomplete")
     push = abdm_service.for_summary(summary.id)
@@ -61,3 +64,8 @@ def physician_patient_summary(patient_id: str) -> PhysicianPatientSummaryRespons
         },
     )
 
+
+
+@router.patch("/summary/{summary_id}")
+def physician_update_summary(summary_id: str, body: SummaryPatchRequest, doctor=Depends(current_doctor)):
+    return update_summary(summary_id, body, {"sub": doctor.id, "role": "doctor"})

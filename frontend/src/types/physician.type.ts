@@ -3,6 +3,10 @@ import type { InterviewSession } from "./interview.type";
 import type { ClinicalSummary } from "./summary.type";
 
 export type QueuePatient = {
+  session_id: string;
+  location: string;
+  doctor_id: string | null;
+  doctor_name: string | null;
   patient_id: string;
   summary_id: string;
   token: string;

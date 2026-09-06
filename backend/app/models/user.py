@@ -69,8 +69,9 @@ class User(Document):
     # Encrypt/tokenize it or store only the minimum
     # identity representation necessary.
     aadhaar = StringField(
-        required=True,
+        required=False,
         unique=True,
+        sparse=True,
         min_length=12,
         max_length=12,
     )
@@ -87,8 +88,9 @@ class User(Document):
     # -----------------------------------------------------
 
     mobile = StringField(
-        required=True,
+        required=False,
         unique=True,
+        sparse=True,
         min_length=10,
         max_length=15,
     )
@@ -104,17 +106,20 @@ class User(Document):
     # -----------------------------------------------------
 
     address = StringField(
-        required=True,
+        required=False,
+        default="",
         max_length=500,
     )
 
     state = StringField(
-        required=True,
+        required=False,
+        default="",
         max_length=100,
     )
 
     district = StringField(
-        required=True,
+        required=False,
+        default="",
         max_length=100,
     )
 
@@ -140,6 +145,9 @@ class User(Document):
     # -----------------------------------------------------
     # Authentication
     # -----------------------------------------------------
+
+    staff_role = StringField(choices=["patient", "lab_assistant"], default="patient")
+    provisional = BooleanField(default=False)
 
     # Never store plaintext password
     password_hash = StringField(

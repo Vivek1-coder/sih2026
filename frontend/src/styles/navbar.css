@@ -1,0 +1,711 @@
+/* =========================================================
+   MEDIKIOSK GLASS NAVBAR
+========================================================= */
+
+.medikiosk-navbar {
+  position: sticky;
+  top: 12px;
+  z-index: 1000;
+
+  width: calc(100% - 32px);
+  max-width: 1480px;
+
+  min-height: 68px;
+  margin: 12px auto 0;
+  padding: 8px 10px 8px 14px;
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 20px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.78),
+      rgba(239, 246, 255, 0.62)
+    );
+
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+
+  box-shadow:
+    0 12px 40px rgba(30, 64, 175, 0.08),
+    0 2px 10px rgba(30, 64, 175, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease;
+}
+
+.medikiosk-navbar:hover {
+  border-color: rgba(147, 197, 253, 0.7);
+
+  box-shadow:
+    0 16px 45px rgba(30, 64, 175, 0.11),
+    0 3px 12px rgba(30, 64, 175, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.navbar-brand {
+  min-width: max-content;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  text-decoration: none;
+  color: #0f172a;
+}
+
+.navbar-logo {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 13px;
+
+  color: white;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #1d4ed8
+    );
+
+  box-shadow:
+    0 7px 20px rgba(37, 99, 235, 0.28),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.navbar-brand:hover .navbar-logo {
+  transform: translateY(-2px) rotate(-3deg);
+
+  box-shadow:
+    0 10px 26px rgba(37, 99, 235, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.navbar-logo::after {
+  content: "";
+
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+
+  border-radius: 16px;
+
+  background: rgba(37, 99, 235, 0.15);
+
+  filter: blur(7px);
+
+  opacity: 0;
+
+  transition: opacity 0.25s ease;
+}
+
+.navbar-brand:hover .navbar-logo::after {
+  opacity: 1;
+}
+
+.navbar-brand-text {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+}
+
+.navbar-brand-text span {
+  color: #2563eb;
+}
+
+
+/* =========================================================
+   CENTER NAVIGATION
+========================================================= */
+
+.navbar-navigation {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  padding: 4px;
+
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 14px;
+
+  background: rgba(248, 250, 252, 0.5);
+}
+
+.navbar-link {
+  position: relative;
+
+  min-height: 38px;
+  padding: 0 13px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border: 1px solid transparent;
+  border-radius: 10px;
+
+  color: #64748b;
+  text-decoration: none;
+
+  font-size: 0.82rem;
+  font-weight: 600;
+
+  white-space: nowrap;
+
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.navbar-link-icon {
+  display: grid;
+  place-items: center;
+
+  transition: transform 0.2s ease;
+}
+
+.navbar-link:hover {
+  color: #1d4ed8;
+
+  border-color: rgba(147, 197, 253, 0.35);
+
+  background: rgba(219, 234, 254, 0.52);
+
+  transform: translateY(-1px);
+}
+
+.navbar-link:hover .navbar-link-icon {
+  transform: scale(1.08);
+}
+
+
+/* Active item */
+
+.navbar-link.active {
+  color: #ffffff;
+
+  border-color: rgba(37, 99, 235, 0.25);
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #1d4ed8
+    );
+
+  box-shadow:
+    0 6px 16px rgba(37, 99, 235, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.navbar-link.active::after {
+  content: "";
+
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+
+  width: 16px;
+  height: 2px;
+
+  border-radius: 999px;
+
+  background: #2563eb;
+
+  transform: translateX(-50%);
+
+  box-shadow: 0 0 7px rgba(37, 99, 235, 0.5);
+}
+
+
+/* =========================================================
+   CURRENT PAGE / FLOW INDICATOR
+========================================================= */
+
+.navbar-current {
+  max-width: 190px;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 7px 10px;
+
+  border: 1px solid rgba(147, 197, 253, 0.36);
+  border-radius: 10px;
+
+  color: #1e40af;
+
+  background: rgba(219, 234, 254, 0.45);
+
+  font-size: 0.72rem;
+  font-weight: 650;
+
+  white-space: nowrap;
+}
+
+.navbar-current-icon {
+  width: 23px;
+  height: 23px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 7px;
+
+  color: #2563eb;
+
+  background: rgba(255, 255, 255, 0.72);
+
+  box-shadow: 0 2px 5px rgba(37, 99, 235, 0.08);
+}
+
+.navbar-current-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+
+  min-width: max-content;
+}
+
+.navbar-action {
+  height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  padding: 0 10px;
+
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 11px;
+
+  outline: none;
+
+  color: #475569;
+
+  background: rgba(255, 255, 255, 0.48);
+
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.navbar-action:hover {
+  color: #1d4ed8;
+
+  border-color: rgba(96, 165, 250, 0.35);
+
+  background: rgba(219, 234, 254, 0.6);
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+}
+
+.navbar-action.active {
+  color: #1d4ed8;
+
+  border-color: rgba(96, 165, 250, 0.35);
+
+  background: rgba(219, 234, 254, 0.65);
+}
+
+.navbar-action:focus-visible,
+.navbar-link:focus-visible,
+.navbar-profile:focus-visible,
+.navbar-brand:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.3);
+  outline-offset: 2px;
+}
+
+
+/* =========================================================
+   LANGUAGE SELECTOR
+========================================================= */
+
+.navbar-language {
+  padding-right: 8px;
+}
+
+.navbar-language select {
+  width: 76px;
+  max-width: 76px;
+
+  border: 0;
+  outline: 0;
+
+  color: #334155;
+
+  background: transparent;
+
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.navbar-language select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
+
+/* =========================================================
+   DIVIDER
+========================================================= */
+
+.navbar-divider {
+  width: 1px;
+  height: 27px;
+
+  margin: 0 2px;
+
+  background:
+    linear-gradient(
+      transparent,
+      rgba(148, 163, 184, 0.4),
+      transparent
+    );
+}
+
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+.navbar-profile {
+  height: 42px;
+  max-width: 175px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 4px 9px 4px 5px;
+
+  border: 1px solid rgba(148, 163, 184, 0.17);
+  border-radius: 12px;
+
+  color: #334155;
+
+  text-decoration: none;
+
+  background: rgba(255, 255, 255, 0.46);
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.navbar-profile:hover {
+  border-color: rgba(96, 165, 250, 0.35);
+
+  background: rgba(239, 246, 255, 0.72);
+
+  transform: translateY(-1px);
+}
+
+.navbar-avatar {
+  width: 32px;
+  height: 32px;
+
+  flex-shrink: 0;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 9px;
+
+  color: #1d4ed8;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(219, 234, 254, 0.95),
+      rgba(191, 219, 254, 0.65)
+    );
+}
+
+.navbar-profile-info {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.navbar-profile-info strong {
+  overflow: hidden;
+
+  font-size: 0.76rem;
+  font-weight: 700;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.navbar-profile-label {
+  color: #94a3b8;
+
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+.navbar-logout {
+  width: 40px;
+  padding: 0;
+}
+
+.navbar-logout:hover {
+  color: #dc2626;
+
+  border-color: rgba(248, 113, 113, 0.3);
+
+  background: rgba(254, 226, 226, 0.6);
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+.sr-only {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  padding: 0;
+  margin: -1px;
+
+  overflow: hidden;
+
+  clip: rect(0, 0, 0, 0);
+
+  white-space: nowrap;
+
+  border: 0;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1200px) {
+  .navbar-current {
+    display: none;
+  }
+
+  .navbar-action-label {
+    display: none;
+  }
+
+  .navbar-action {
+    width: 40px;
+    padding: 0;
+  }
+
+  .navbar-language {
+    width: auto;
+    padding: 0 8px;
+  }
+}
+
+
+@media (max-width: 900px) {
+  .medikiosk-navbar {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand actions"
+      "navigation navigation";
+
+    gap: 8px;
+
+    padding: 8px;
+  }
+
+  .navbar-brand {
+    grid-area: brand;
+  }
+
+  .navbar-navigation {
+    grid-area: navigation;
+
+    width: 100%;
+
+    justify-content: flex-start;
+  }
+
+  .navbar-actions {
+    grid-area: actions;
+  }
+
+  .navbar-links {
+    width: 100%;
+
+    overflow-x: auto;
+
+    justify-content: flex-start;
+
+    scrollbar-width: none;
+  }
+
+  .navbar-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .navbar-link {
+    flex-shrink: 0;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .medikiosk-navbar {
+    top: 6px;
+
+    width: calc(100% - 16px);
+
+    margin-top: 8px;
+
+    border-radius: 17px;
+  }
+
+  .navbar-brand-text {
+    font-size: 0.98rem;
+  }
+
+  .navbar-logo {
+    width: 37px;
+    height: 37px;
+
+    border-radius: 11px;
+  }
+
+  .navbar-profile-info,
+  .navbar-divider {
+    display: none;
+  }
+
+  .navbar-profile {
+    width: 40px;
+    padding: 4px;
+
+    justify-content: center;
+  }
+
+  .navbar-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .navbar-language select {
+    width: 54px;
+    max-width: 54px;
+
+    font-size: 0.68rem;
+  }
+
+  .navbar-link {
+    min-height: 36px;
+
+    padding: 0 10px;
+
+    font-size: 0.75rem;
+  }
+}
+
+
+@media (max-width: 420px) {
+  .navbar-brand-text {
+    display: none;
+  }
+
+  .navbar-language select {
+    display: none;
+  }
+
+  .navbar-language {
+    width: 40px;
+  }
+
+  .navbar-link {
+    gap: 5px;
+
+    padding: 0 9px;
+  }
+
+  .navbar-link-label {
+    font-size: 0.7rem;
+  }
+}

@@ -24,7 +24,7 @@ export default function Physician() {
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
-    getPhysicianQueue()
+    const load = () => getPhysicianQueue()
       .then((queue) => active && setPatients(queue))
       .catch(
         (reason) =>
@@ -33,7 +33,10 @@ export default function Physician() {
             reason instanceof Error ? reason.message : "Queue unavailable",
           ),
       );
+    void load();
+    const timer = window.setInterval(load, 5000);
     return () => {
+      window.clearInterval(timer);
       active = false;
     };
   }, []);
@@ -64,11 +67,11 @@ export default function Physician() {
   return (
     <>
       <Header physician />
-      <main className="physician-main" id="physician-content">
+      <main className="physician-main" id="physician-content" tabIndex={-1}>
         <div className="dashboard-head">
           <div>
             <span className="eyebrow">Live consultation queue</span>
-            <h1>Good morning, Dr. Nair.</h1>
+            <h1>OPD consultation queue</h1>
             <p>Red-flag patients are automatically placed first.</p>
           </div>
         </div>
@@ -144,7 +147,7 @@ export default function Physician() {
                     </td>
                     <td>
                       {patient.complaint}
-                      <small>{patient.department}</small>
+                      <small>{patient.department}</small><small>{patient.location} · {patient.doctor_name || "Awaiting doctor assignment"}</small>
                     </td>
                     <td>
                       <PriorityBadge

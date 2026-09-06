@@ -8,15 +8,17 @@ export async function listDocuments(): Promise<UploadedDocument[]> {
   return payload.documents;
 }
 
-export async function uploadDocument(file: File): Promise<UploadedDocument> {
+export async function uploadDocumentFile<T>(path: string, file: File, fields: Record<string, string> = {}): Promise<T> {
   const form = new FormData();
   form.append("file", file);
-  const response = await apiFetch("/api/documents/upload", {
-    method: "POST",
-    body: form,
-  });
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  const response = await apiFetch(path, { method: "POST", body: form });
   if (!response.ok) throw await apiError(response);
-  return response.json() as Promise<UploadedDocument>;
+  return response.json() as Promise<T>;
+}
+
+export async function uploadDocument(file: File, documentType = "other"): Promise<UploadedDocument> {
+  return uploadDocumentFile<UploadedDocument>("/api/documents/upload", file, { document_type: documentType });
 }
 
 export async function deleteDocument(documentId: string): Promise<void> {

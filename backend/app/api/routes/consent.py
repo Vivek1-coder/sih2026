@@ -124,9 +124,12 @@ def save_consent(
         choices=request.choices,
     )
 
-    return consent_response(
-        record
-    )
+    from app.services.continuity_service import active_visit
+    session = active_visit(patient_id)
+    if session and record.status == "active" and consent_service.required_granted(record) and session.step == "consent":
+        session.step = "interview"
+        session.save()
+    return consent_response(record)
 
 
 # ============================================================

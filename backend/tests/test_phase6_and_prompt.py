@@ -60,6 +60,9 @@ def test_summary_prompt_merges_interview_and_documents(monkeypatch) -> None:
 
 
 def test_queue_registration_and_mock_abdm_push_are_idempotent() -> None:
+    from app.models.continuity import Doctor, DoctorQueueEntry
+    from app.core.security import create_access_token
+    doctor = Doctor(id=uuid4().hex, full_name="Test physician").save()
     patient = new_patient()
     completed_cough_interview(patient)
     summary = summary_service.generate(patient)
@@ -75,7 +78,9 @@ def test_queue_registration_and_mock_abdm_push_are_idempotent() -> None:
     assert entry["token"] == registration.token
     assert entry["queue_position"] >= 1
 
+    DoctorQueueEntry.objects(session_id=summary.interview_session_id).update_one(set__doctor_id=doctor.id)
     client = TestClient(app)
+    client.cookies.set("medikiosk_access", create_access_token(doctor.id, {"role": "doctor"}))
     queue_response = client.get("/api/physician/queue")
     aggregate_response = client.get(f"/api/physician/patient/{patient}/summary")
     assert queue_response.status_code == 200

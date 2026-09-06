@@ -21,6 +21,10 @@ from app.core.dbConnection import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     connect_to_mongodb()
+    from app.services.user_index_migration import migrate_optional_identity_indexes
+    migrate_optional_identity_indexes()
+    from app.services.continuity_migration import backfill_legacy_visits
+    backfill_legacy_visits()
 
     print("MongoDB connected successfully")
 
@@ -54,6 +58,8 @@ app.include_router(summary_router)
 app.include_router(abdm_router)
 app.include_router(physician_router)
 app.include_router(profile_router)
+from app.api.routes.patient import router as patient_router
+app.include_router(patient_router)
 
 @app.get("/")
 def root():
@@ -67,3 +73,9 @@ def health():
     return {
         "status": "healthy"
     }
+
+from app.api.routes.prescriptions import router as prescriptions_router
+app.include_router(prescriptions_router)
+
+from app.api.routes.lab import router as lab_router
+app.include_router(lab_router)

@@ -27,6 +27,10 @@ class ExtractedDocumentResponse(BaseModel):
 
 
 class UploadedDocumentResponse(BaseModel):
+    uploaded_by_role: str = "system"
+    uploaded_by_id: str | None = None
+    session_id: str | None = None
+    document_type: str = "other"
     id: str
     original_filename: str
     content_type: str
