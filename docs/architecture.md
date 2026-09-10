@@ -34,6 +34,9 @@ FastAPI Backend API
         v
 Frontend displays the patient or physician result
 ```
+
+[Open Image](./architecture.png)
+
 ## Components
 
 ### Frontend

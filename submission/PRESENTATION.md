@@ -6,7 +6,7 @@ Upload the **final SIH presentation (PPT/PPTX)** in this `submission/` folder an
 
 Replace the placeholder below with the actual file name once uploaded:
 
-- **PPT:** `[Open Final Presentation](./YOUR_FINAL_PRESENTATION.pptx)`
+- **PPT:** [View Presentation](./SIH26.pdf)
 
 ### Requirements
 
@@ -17,4 +17,4 @@ Replace the placeholder below with the actual file name once uploaded:
 
 ## External presentation link (only if needed)
 
-`<PASTE_GOOGLE_DRIVE_OR_ONEDRIVE_VIEW_LINK_HERE>`
+`https://drive.google.com/file/d/1IaGAQxrNF_12HASXuI48i_t6WFtEwwiP/view?usp=sharing`

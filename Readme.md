@@ -4,7 +4,7 @@ This repository contains **MediKiosk**, a multilingual, AI-assisted patient medi
 
 ## 1. Project Information
 
-* **Project Title:** MediKiosk – AI-Assisted Patient Pre-Consultation System
+* **Project Title:** MediKiosk – AI Clinical Intake
 
 * **PS ID:** SIH26047
 
