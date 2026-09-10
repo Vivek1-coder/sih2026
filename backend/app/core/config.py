@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
     COOKIE_DOMAIN: str | None = None
     FRONTEND_ORIGIN: str = "http://localhost:5173"
-    FRONTEND_ORIGINS: str = ""
+    FRONTEND_ORIGINS: str = "https://medikiosksih26.vercel.app"
 
     MEDIKIOSK_LOCATIONS: list[str] = []
 

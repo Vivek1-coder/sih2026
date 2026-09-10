@@ -17,6 +17,12 @@ from app.core.dbConnection import (
     disconnect_from_mongodb,
 )
 
+DEFAULT_FRONTEND_ORIGINS = {
+    "https://medikiosksih26.vercel.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+}
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,14 +48,15 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=list(
-        dict.fromkeys(
+    allow_origins=sorted(
+        DEFAULT_FRONTEND_ORIGINS
+        | {
             origin.strip()
             for origin in (
                 f"{settings.FRONTEND_ORIGIN},{settings.FRONTEND_ORIGINS}"
             ).split(",")
             if origin.strip()
-        )
+        }
     ),
     allow_credentials=True,
     allow_methods=["*"],
