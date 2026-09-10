@@ -1,9 +1,9 @@
 import { formatNumber } from "../i18n";
 import { errorText } from "../i18n";
 import Loader from "../components/common/Loader";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import { ui } from "../i18n";
-import { ArrowRight, Check, } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import PatientShell from "../components/common/patientShell";
 import useAccessibility from "../hooks/useAccessibility";
@@ -55,23 +55,30 @@ export default function Complete() {
     <PatientShell active="Consult">
       <div className="complete-page">
         <div className="success-mark">
-          {queue ? (
-            <Check size={38} />
-          ) : (
-            !error && <Loader size={38} />
-          )}
+          {queue ? <Check size={38} /> : !error && <Loader size={38} />}
         </div>
-        <span className="eyebrow">{ui("complete:checkin")}{queue ? ui("complete:complete") : ui("complete:processing")}
+        <span className="eyebrow">
+          {ui("complete:checkin")}
+          {queue ? ui("complete:complete") : ui("complete:processing")}
         </span>
         <h1>
           {queue
-            ? ui("complete:greeting", { greeting: t("complete.done"), name: user?.display_name ?? ui("common:patient") })
+            ? ui("complete:greeting", {
+                greeting: t("complete.done"),
+                name: user?.display_name ?? ui("common:patient"),
+              })
             : t("complete.processing")}
         </h1>
         <p>{ui("complete:your_submitted_history_is_ready_for_the_care")}</p>
         {error && (
           <div className="form-error" role="alert">
-            {errorText(error)}<button className="button secondary" onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button>
+            {errorText(error)}
+            <button
+              className="button secondary"
+              onClick={() => setRetryCount((n) => n + 1)}
+            >
+              {ui("common:retry")}
+            </button>
           </div>
         )}
         {queue && (
@@ -89,7 +96,11 @@ export default function Complete() {
               </div>
               <div>
                 <span>{ui("complete:estimated_wait")}</span>
-                <b>{ui("common:waitMinutes", { value: formatNumber(queue.estimated_wait_minutes) })}</b>
+                <b>
+                  {ui("common:waitMinutes", {
+                    value: formatNumber(queue.estimated_wait_minutes),
+                  })}
+                </b>
               </div>
               <div>
                 <span>{ui("complete:queue_position")}</span>
@@ -97,7 +108,10 @@ export default function Complete() {
               </div>
             </div>
             {push && (
-              <p className="muted">{ui("complete:mock_fhir_bundle")}{push.bundle_id}</p>
+              <p className="muted">
+                {ui("complete:mock_fhir_bundle")}
+                {push.bundle_id}
+              </p>
             )}
           </div>
         )}
@@ -112,7 +126,9 @@ export default function Complete() {
             {t("complete.home")}
           </button>
         </div>
-        <p className="muted small">{ui("complete:wait_times_are_estimates_if_you_feel_worse")}</p>
+        <p className="muted small">
+          {ui("complete:wait_times_are_estimates_if_you_feel_worse")}
+        </p>
       </div>
     </PatientShell>
   );

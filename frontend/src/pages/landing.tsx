@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import { ui } from "../i18n";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -80,7 +80,9 @@ const workflowSteps: WorkflowStep[] = [
 /** Reveals its target once, the first time it scrolls into view. */
 function useInView<T extends HTMLElement>(threshold = 0.25) {
   const ref = useRef<T | null>(null);
-  const [inView, setInView] = useState(() => typeof IntersectionObserver === "undefined");
+  const [inView, setInView] = useState(
+    () => typeof IntersectionObserver === "undefined",
+  );
 
   useEffect(() => {
     const node = ref.current;
@@ -145,18 +147,30 @@ export default function Landing() {
             {/* LEFT */}
             <div className="hero-content">
               <div className="hero-badge">
-                <span className="badge-pulse" />{ui("landing:aipowered_clinical_intake")}</div>
+                <span className="badge-pulse" />
+                {ui("landing:aipowered_clinical_intake")}
+              </div>
 
-              <h1 className="hero-title flex items-center">{ui("landing:medi")}<span className="hero-title-gradient">{ui("landing:kiosk")}</span>
+              <h1 className="hero-title flex items-center">
+                {ui("landing:medi")}
+                <span className="hero-title-gradient">
+                  {ui("landing:kiosk")}
+                </span>
               </h1>
 
-              <p className="hero-description">{ui("landing:your_story_structured_before_you_meet_your_doctor")}</p>
+              <p className="hero-description">
+                {ui(
+                  "landing:your_story_structured_before_you_meet_your_doctor",
+                )}
+              </p>
 
               <div className="hero-buttons">
                 <button
                   className="hero-button hero-button-primary"
                   onClick={() => navigate("/patient/identify")}
-                >{ui("landing:start_checkin")}<span className="button-icon-circle">
+                >
+                  {ui("landing:start_checkin")}
+                  <span className="button-icon-circle">
                     <ArrowRight size={17} />
                   </span>
                 </button>
@@ -165,7 +179,9 @@ export default function Landing() {
                   className="hero-button hero-button-secondary"
                   onClick={() => navigate("/physician")}
                 >
-                  <Stethoscope size={18} />{ui("landing:physician_dashboard")}</button>
+                  <Stethoscope size={18} />
+                  {ui("landing:physician_dashboard")}
+                </button>
               </div>
 
               <div className="hero-trust">
@@ -212,10 +228,14 @@ export default function Landing() {
                     <span>
                       <span className="neon-icon-box">
                         <Sparkles size={15} />
-                      </span>{ui("landing:patient_journey")}</span>
+                      </span>
+                      {ui("landing:patient_journey")}
+                    </span>
 
                     <span className="live-indicator">
-                      <i />{ui("landing:active")}</span>
+                      <i />
+                      {ui("landing:active")}
+                    </span>
                   </div>
 
                   <div className="health-orb-scene">
@@ -289,12 +309,16 @@ export default function Landing() {
                     </div>
 
                     <span className="score-status">
-                      <i />{ui("landing:captured")}</span>
+                      <i />
+                      {ui("landing:captured")}
+                    </span>
                   </div>
 
                   <div className="patient-score-content">
                     <div>
-                      <span className="neon-eyebrow">{ui("landing:patient")}</span>
+                      <span className="neon-eyebrow">
+                        {ui("landing:patient")}
+                      </span>
                       <strong>{ui("landing:history_captured")}</strong>
                       <p>{ui("landing:clinical_intake_completeness")}</p>
                     </div>
@@ -322,7 +346,9 @@ export default function Landing() {
                     </div>
 
                     <div>
-                      <span className="neon-eyebrow">{ui("landing:ai_engine")}</span>
+                      <span className="neon-eyebrow">
+                        {ui("landing:ai_engine")}
+                      </span>
                       <strong>{ui("landing:clinical_summary")}</strong>
                     </div>
                   </div>
@@ -334,7 +360,9 @@ export default function Landing() {
                   </div>
 
                   <div className="summary-ready">
-                    <CheckCircle2 size={14} />{ui("landing:ready_for_physician_review")}</div>
+                    <CheckCircle2 size={14} />
+                    {ui("landing:ready_for_physician_review")}
+                  </div>
                 </div>
 
                 {/* Languages */}
@@ -346,9 +374,13 @@ export default function Landing() {
                   </div>
 
                   <div className="languages-content">
-                    <span className="neon-eyebrow">{ui("landing:accessibility")}</span>
+                    <span className="neon-eyebrow">
+                      {ui("landing:accessibility")}
+                    </span>
                     <strong>
-                      <span className="metric-number">2</span>{ui("landing:languages")}</strong>
+                      <span className="metric-number">2</span>
+                      {ui("landing:languages")}
+                    </strong>
                     <small>{ui("landing:inclusive_by_design")}</small>
                   </div>
 
@@ -374,7 +406,11 @@ export default function Landing() {
                     <strong>{ui("landing:seconds")}</strong>
                   </div>
 
-                  <p>{ui("landing:to_a_physicianready")}<br />{ui("landing:clinical_summary_2")}</p>
+                  <p>
+                    {ui("landing:to_a_physicianready")}
+                    <br />
+                    {ui("landing:clinical_summary_2")}
+                  </p>
 
                   <div className="time-wave">
                     {[20, 45, 30, 60, 38, 75, 45, 85, 50, 67, 35, 55].map(
@@ -399,7 +435,9 @@ export default function Landing() {
           <div className="landing-container">
             <div className="section-header workflow-heading">
               <div>
-                <span className="section-label dark-label">{ui("landing:one_connected_journey")}</span>
+                <span className="section-label dark-label">
+                  {ui("landing:one_connected_journey")}
+                </span>
 
                 <h2>{ui("landing:five_steps_to_a_clearer_consult")}</h2>
               </div>
@@ -443,10 +481,16 @@ export default function Landing() {
           <div className="landing-container">
             <div className="section-header centered-heading">
               <span className="section-label">
-                <Sparkles size={14} />{ui("landing:built_around_the_consultation")}</span>
+                <Sparkles size={14} />
+                {ui("landing:built_around_the_consultation")}
+              </span>
 
-              <div className="mt-3 text-4xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">{ui("landing:one_connected_journey_from")}<br />
-                <span className="text-blue-600">{ui("landing:patient_to_physician")}</span>
+              <div className="mt-3 text-4xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">
+                {ui("landing:one_connected_journey_from")}
+                <br />
+                <span className="text-blue-600">
+                  {ui("landing:patient_to_physician")}
+                </span>
               </div>
             </div>
 
@@ -457,7 +501,9 @@ export default function Landing() {
                     <ClipboardList size={21} />
                   </span>
 
-                  <span className="feature-tag">{ui("landing:structured_clinical_history")}</span>
+                  <span className="feature-tag">
+                    {ui("landing:structured_clinical_history")}
+                  </span>
                 </div>
 
                 <div className="clinical-preview">
@@ -505,7 +551,9 @@ export default function Landing() {
                     <AudioLines size={21} />
                   </span>
 
-                  <span className="feature-tag">{ui("landing:speak_naturally")}</span>
+                  <span className="feature-tag">
+                    {ui("landing:speak_naturally")}
+                  </span>
                 </div>
 
                 <div className="voice-visual">
@@ -519,7 +567,11 @@ export default function Landing() {
                 <div className="speech-bubble glass-subcard">
                   <span className="speech-avatar">
                     <Mic2 size={15} />
-                  </span>{ui("landing:tell_me_when_the_chest_discomfort_first_started")}</div>
+                  </span>
+                  {ui(
+                    "landing:tell_me_when_the_chest_discomfort_first_started",
+                  )}
+                </div>
               </article>
 
               <article className="feature-bento feature-safety glass-card">
@@ -529,16 +581,24 @@ export default function Landing() {
 
                 <h3>{ui("landing:consent_stays_visible")}</h3>
 
-                <p>{ui("landing:patients_review_their_history_before_it_reaches_the")}</p>
+                <p>
+                  {ui(
+                    "landing:patients_review_their_history_before_it_reaches_the",
+                  )}
+                </p>
 
                 <div className="consent-row glass-pill">
-                  <Check size={15} />{ui("landing:patient_reviewed")}</div>
+                  <Check size={15} />
+                  {ui("landing:patient_reviewed")}
+                </div>
               </article>
 
               <article className="feature-bento feature-doctor glass-card">
                 <div className="doctor-header">
                   <div>
-                    <span className="feature-tag">{ui("landing:physician_view")}</span>
+                    <span className="feature-tag">
+                      {ui("landing:physician_view")}
+                    </span>
                     <h3>{ui("landing:everything_important_one_screen")}</h3>
                   </div>
 
@@ -562,7 +622,9 @@ export default function Landing() {
                   <div className="dashboard-content">
                     <div className="dashboard-top">
                       <span>{ui("landing:patient_overview")}</span>
-                      <span className="dashboard-status">{ui("landing:reviewed")}</span>
+                      <span className="dashboard-status">
+                        {ui("landing:reviewed")}
+                      </span>
                     </div>
 
                     <div className="dashboard-patient">
@@ -609,7 +671,9 @@ export default function Landing() {
 
               <div>
                 <strong>{ui("landing:your_information_stays_yours")}</strong>
-                <p>{ui("landing:fictional_demo_no_real_health_or_identity_data")}</p>
+                <p>
+                  {ui("landing:fictional_demo_no_real_health_or_identity_data")}
+                </p>
               </div>
 
               <ArrowRight className="privacy-arrow" size={19} />

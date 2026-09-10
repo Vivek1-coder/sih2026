@@ -1,6 +1,6 @@
 import Loader from "../components/common/Loader";
 import { errorText } from "../i18n";
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import { ui } from "../i18n";
 import { useState, type SubmitEvent } from "react";
 
@@ -272,9 +272,7 @@ export default function Identify() {
         phone.length === 10 || (phone.length === 12 && phone.startsWith("91"));
 
       if (!validEmail && !validPhone) {
-        setError(
-          "errors:please_enter_a_valid_email_address_or_10digit_mobile",
-        );
+        setError("errors:please_enter_a_valid_email_address_or_10digit_mobile");
 
         return false;
       }
@@ -405,9 +403,16 @@ export default function Identify() {
        * Successful login.
        */
       sessionStorage.removeItem("medikiosk-visit");
-      navigate(authenticatedUser.role === "lab_assistant" ? "/lab" : authenticatedUser.role === "doctor" ? "/physician" : "/patient/home", {
-        replace: true,
-      });
+      navigate(
+        authenticatedUser.role === "lab_assistant"
+          ? "/lab"
+          : authenticatedUser.role === "doctor"
+            ? "/physician"
+            : "/patient/home",
+        {
+          replace: true,
+        },
+      );
     } catch (loginError) {
       setError(
         loginError instanceof Error
@@ -596,7 +601,6 @@ export default function Identify() {
     setLoading(true);
 
     try {
-
       const authenticatedUser = await registerPatient(registerForm);
 
       /*
@@ -607,11 +611,17 @@ export default function Identify() {
       setAuthenticatedUser(authenticatedUser);
 
       sessionStorage.removeItem("medikiosk-visit");
-      navigate(authenticatedUser.role === "lab_assistant" ? "/lab" : authenticatedUser.role === "doctor" ? "/physician" : "/patient/home", {
-        replace: true,
-      });
+      navigate(
+        authenticatedUser.role === "lab_assistant"
+          ? "/lab"
+          : authenticatedUser.role === "doctor"
+            ? "/physician"
+            : "/patient/home",
+        {
+          replace: true,
+        },
+      );
     } catch (registrationError) {
-
       setError(
         registrationError instanceof Error
           ? registrationError.message
@@ -633,13 +643,19 @@ export default function Identify() {
           <span className="eyebrow">{t("identify.eyebrow")}</span>
 
           <h1>
-            {pageMode === "login" ? ui("identify:patient_login") : ui("identify:create_patient_account")}
+            {pageMode === "login"
+              ? ui("identify:patient_login")
+              : ui("identify:create_patient_account")}
           </h1>
 
           <p>
             {pageMode === "login"
-              ? ui("identify:securely_access_your_health_profile_using_abha_aadhaar")
-              : ui("identify:create_your_patient_profile_before_continuing_with_your")}
+              ? ui(
+                  "identify:securely_access_your_health_profile_using_abha_aadhaar",
+                )
+              : ui(
+                  "identify:create_your_patient_profile_before_continuing_with_your",
+                )}
           </p>
         </div>
 
@@ -656,12 +672,18 @@ export default function Identify() {
 
       {pageMode === "login" && (
         <>
-          <aside className="demo-credentials-card card" aria-label="Demo login credentials">
+          <aside
+            className="demo-credentials-card card"
+            aria-label="Demo login credentials"
+          >
             <div className="demo-credentials-heading">
               <KeyRound size={20} />
               <div>
                 <h2>Demo login credentials</h2>
-                <p>Select <strong>Email / Phone</strong> above to use these credentials.</p>
+                <p>
+                  Select <strong>Email / Phone</strong> above to use these
+                  credentials.
+                </p>
               </div>
             </div>
 
@@ -688,7 +710,11 @@ export default function Identify() {
                 Login Method
             ============================================= */}
 
-            <div className="tabs" role="tablist" aria-label={ui("identify:login_method")}>
+            <div
+              className="tabs"
+              role="tablist"
+              aria-label={ui("identify:login_method")}
+            >
               {(["ABHA ID", "Aadhaar", "Email / Phone"] as LoginMethod[]).map(
                 (method) => (
                   <button
@@ -706,195 +732,215 @@ export default function Identify() {
             </div>
 
             <div className="single-form">
-            {/* ===========================================
+              {/* ===========================================
                 Identifier
             =========================================== */}
 
-            <Field
-              label={
-                loginMethod === "ABHA ID"
-                  ? ui("identify:abha_number_or_address")
-                  : loginMethod === "Aadhaar"
-                    ? ui("identify:aadhaar_number")
-                    : ui("identify:email_or_mobile_number")
-              }
-              placeholder={
-                loginMethod === "ABHA ID"
-                  ? ui("identify:14digit_abha_or_nameabdm")
-                  : loginMethod === "Aadhaar"
-                    ? ui("identify:enter_12digit_aadhaar_number")
-                    : ui("identify:youexamplecom_or_9876543210")
-              }
-              type={loginMethod === "Aadhaar" ? "password" : "text"}
-              value={loginForm.identifier}
-              onChange={(event) => {
-                setLoginForm((previous) => ({
-                  ...previous,
-
-                  identifier: event.target.value,
-                }));
-
-                setOtpSent(false);
-
-                clearMessages();
-              }}
-            />
-
-            {/* ===========================================
-                Password / OTP
-            =========================================== */}
-
-            <div
-              className="tabs auth-mode-tabs"
-              role="tablist"
-              aria-label={ui("identify:authentication_mode")}
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={authMode === "password"}
-                className={authMode === "password" ? "active" : ""}
-                onClick={() => handleAuthModeChange("password")}
-              >
-                <KeyRound size={16} />{ui("identify:password")}</button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={authMode === "otp"}
-                className={authMode === "otp" ? "active" : ""}
-                onClick={() => handleAuthModeChange("otp")}
-              >
-                <MessageSquareText size={16} />{ui("identify:otp")}</button>
-            </div>
-
-            {/* ===========================================
-                Password
-            =========================================== */}
-
-            {authMode === "password" && (
               <Field
-                label={ui("identify:password")}
-                type="password"
-                placeholder={ui("identify:enter_your_password")}
-                value={loginForm.password}
+                label={
+                  loginMethod === "ABHA ID"
+                    ? ui("identify:abha_number_or_address")
+                    : loginMethod === "Aadhaar"
+                      ? ui("identify:aadhaar_number")
+                      : ui("identify:email_or_mobile_number")
+                }
+                placeholder={
+                  loginMethod === "ABHA ID"
+                    ? ui("identify:14digit_abha_or_nameabdm")
+                    : loginMethod === "Aadhaar"
+                      ? ui("identify:enter_12digit_aadhaar_number")
+                      : ui("identify:youexamplecom_or_9876543210")
+                }
+                type={loginMethod === "Aadhaar" ? "password" : "text"}
+                value={loginForm.identifier}
                 onChange={(event) => {
                   setLoginForm((previous) => ({
                     ...previous,
 
-                    password: event.target.value,
+                    identifier: event.target.value,
                   }));
 
-                  setError("");
+                  setOtpSent(false);
+
+                  clearMessages();
                 }}
               />
-            )}
 
-            {/* ===========================================
-                OTP
+              {/* ===========================================
+                Password / OTP
             =========================================== */}
 
-            {authMode === "otp" && (
-              <div className="otp-section">
-                {otpSent && (
-                  <Field
-                    label={ui("identify:enter_otp")}
-                    placeholder={ui("identify:enter_6digit_otp")}
-                    value={loginForm.otp}
-                    onChange={(event) => {
-                      const value = event.target.value
-                        .replace(/\D/g, "")
-                        .slice(0, 6);
-
-                      setLoginForm((previous) => ({
-                        ...previous,
-                        otp: value,
-                      }));
-
-                      setError("");
-                    }}
-                  />
-                )}
+              <div
+                className="tabs auth-mode-tabs"
+                role="tablist"
+                aria-label={ui("identify:authentication_mode")}
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={authMode === "password"}
+                  className={authMode === "password" ? "active" : ""}
+                  onClick={() => handleAuthModeChange("password")}
+                >
+                  <KeyRound size={16} />
+                  {ui("identify:password")}
+                </button>
 
                 <button
                   type="button"
-                  className="button secondary"
-                  disabled={otpLoading}
-                  onClick={requestOtp}
+                  role="tab"
+                  aria-selected={authMode === "otp"}
+                  className={authMode === "otp" ? "active" : ""}
+                  onClick={() => handleAuthModeChange("otp")}
                 >
-                  <MessageSquareText size={17} />
-
-                  {otpLoading
-                    ? <Loader label="identify:sending_otp" />
-                    : otpSent
-                      ? ui("identify:resend_otp")
-                      : ui("identify:send_otp")}
+                  <MessageSquareText size={16} />
+                  {ui("identify:otp")}
                 </button>
               </div>
-            )}
 
-            {/* ===========================================
+              {/* ===========================================
+                Password
+            =========================================== */}
+
+              {authMode === "password" && (
+                <Field
+                  label={ui("identify:password")}
+                  type="password"
+                  placeholder={ui("identify:enter_your_password")}
+                  value={loginForm.password}
+                  onChange={(event) => {
+                    setLoginForm((previous) => ({
+                      ...previous,
+
+                      password: event.target.value,
+                    }));
+
+                    setError("");
+                  }}
+                />
+              )}
+
+              {/* ===========================================
+                OTP
+            =========================================== */}
+
+              {authMode === "otp" && (
+                <div className="otp-section">
+                  {otpSent && (
+                    <Field
+                      label={ui("identify:enter_otp")}
+                      placeholder={ui("identify:enter_6digit_otp")}
+                      value={loginForm.otp}
+                      onChange={(event) => {
+                        const value = event.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 6);
+
+                        setLoginForm((previous) => ({
+                          ...previous,
+                          otp: value,
+                        }));
+
+                        setError("");
+                      }}
+                    />
+                  )}
+
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={otpLoading}
+                    onClick={requestOtp}
+                  >
+                    <MessageSquareText size={17} />
+
+                    {otpLoading ? (
+                      <Loader label="identify:sending_otp" />
+                    ) : otpSent ? (
+                      ui("identify:resend_otp")
+                    ) : (
+                      ui("identify:send_otp")
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* ===========================================
                 ABHA QR
             =========================================== */}
 
-            {loginMethod === "ABHA ID" && (
-              <button className="scan-link" type="button">
-                <Zap size={17} />{ui("identify:scan_abha_qr_instead")}</button>
-            )}
+              {loginMethod === "ABHA ID" && (
+                <button className="scan-link" type="button">
+                  <Zap size={17} />
+                  {ui("identify:scan_abha_qr_instead")}
+                </button>
+              )}
 
-            {/* ===========================================
+              {/* ===========================================
                 Security Notice
             =========================================== */}
 
-            <div className="notice">
-              <ShieldCheck size={17} />
+              <div className="notice">
+                <ShieldCheck size={17} />
 
-              <span>{ui("identify:your_credentials_are_sent_securely_to_the_authentication")}</span>
+                <span>
+                  {ui(
+                    "identify:your_credentials_are_sent_securely_to_the_authentication",
+                  )}
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* =============================================
+            {/* =============================================
               Messages
           ============================================= */}
 
-          {error && (
-            <div className="form-error" role="alert">
-              {errorText(error)}
-            </div>
-          )}
+            {error && (
+              <div className="form-error" role="alert">
+                {errorText(error)}
+              </div>
+            )}
 
-          {message && (
-            <div className="form-success" role="status">
-              {errorText(message)}
-            </div>
-          )}
+            {message && (
+              <div className="form-success" role="status">
+                {errorText(message)}
+              </div>
+            )}
 
-          {/* =============================================
+            {/* =============================================
               Footer
           ============================================= */}
 
-          <div className="form-footer">
-            <button
-              type="button"
-              className="button secondary"
-              onClick={() => {
-                setPageMode("register");
+            <div className="form-footer">
+              <button
+                type="button"
+                className="button secondary"
+                onClick={() => {
+                  setPageMode("register");
 
-                clearMessages();
-              }}
-            >
-              <UserPlus size={17} />{ui("identify:new_patient_register")}</button>
+                  clearMessages();
+                }}
+              >
+                <UserPlus size={17} />
+                {ui("identify:new_patient_register")}
+              </button>
 
-            <button type="submit" className="button primary" disabled={loading}>
-              {loading
-                ? <Loader label="identify:signing_in" />
-                : authMode === "otp"
-                  ? ui("identify:verify_otp_continue")
-                  : ui("identify:login_continue")}
+              <button
+                type="submit"
+                className="button primary"
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader label="identify:signing_in" />
+                ) : authMode === "otp" ? (
+                  ui("identify:verify_otp_continue")
+                ) : (
+                  ui("identify:login_continue")
+                )}
 
-              {!loading && <ArrowRight size={17} />}
-            </button>
-          </div>
+                {!loading && <ArrowRight size={17} />}
+              </button>
+            </div>
           </form>
         </>
       )}
@@ -908,7 +954,11 @@ export default function Identify() {
           <div className="login-section-heading">
             <h2>{ui("identify:create_patient_profile")}</h2>
 
-            <p>{ui("identify:enter_your_details_to_register_aadhaar_is_required")}</p>
+            <p>
+              {ui(
+                "identify:enter_your_details_to_register_aadhaar_is_required",
+              )}
+            </p>
           </div>
 
           <div className="form-grid">
@@ -1188,7 +1238,11 @@ export default function Identify() {
           <div className="notice">
             <ShieldCheck size={17} />
 
-            <span>{ui("identify:aadhaar_and_health_identity_data_are_sensitive_information")}</span>
+            <span>
+              {ui(
+                "identify:aadhaar_and_health_identity_data_are_sensitive_information",
+              )}
+            </span>
           </div>
 
           {/* =============================================
@@ -1214,10 +1268,16 @@ export default function Identify() {
 
                 resetLoginForm();
               }}
-            >{ui("identify:already_registered_login")}</button>
+            >
+              {ui("identify:already_registered_login")}
+            </button>
 
             <button type="submit" className="button primary" disabled={loading}>
-              {loading ? <Loader label="identify:creating_account" /> : ui("identify:create_account")}
+              {loading ? (
+                <Loader label="identify:creating_account" />
+              ) : (
+                ui("identify:create_account")
+              )}
 
               {!loading && <ArrowRight size={17} />}
             </button>

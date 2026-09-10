@@ -1,7 +1,7 @@
 import Loader from "../components/common/Loader";
 import { errorText } from "../i18n";
-import { useTranslation } from 'react-i18next';
-import { supportedLanguages } from '../i18n/locales';
+import { useTranslation } from "react-i18next";
+import { supportedLanguages } from "../i18n/locales";
 import { ui } from "../i18n";
 import {
   AlertTriangle,
@@ -21,10 +21,7 @@ import { getConsent, revokeConsent, saveConsent } from "../services/consent";
 import PatientShell from "../components/common/patientShell";
 import { useNavigate } from "react-router-dom";
 
-
 const languages = supportedLanguages;
-
-
 
 const categories: Array<{
   key: keyof ConsentChoices;
@@ -93,12 +90,13 @@ export default function Consent() {
   const [error, setError] = useState("");
   const speech = useSpeech(preferredLanguage);
   const stopConsentSpeech = speech.stopSpeaking;
-  const explanation = ui('consent:explanation');
+  const explanation = ui("consent:explanation");
   const navigate = useNavigate();
   useEffect(() => {
     let active = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     getConsent()
       .then((record) => {
         if (!active || !record) return;
@@ -108,7 +106,11 @@ export default function Consent() {
       })
       .catch((loadError: unknown) => {
         if (active) {
-          setError(loadError instanceof Error ? loadError.message : "errors:unable_to_load_consent");
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : "errors:unable_to_load_consent",
+          );
         }
       })
       .finally(() => {
@@ -121,7 +123,10 @@ export default function Consent() {
   }, [stopConsentSpeech, retryCount]);
 
   const requiredGranted = useMemo(
-    () => categories.filter((category) => category.required).every((category) => choices[category.key]),
+    () =>
+      categories
+        .filter((category) => category.required)
+        .every((category) => choices[category.key]),
     [choices],
   );
 
@@ -133,12 +138,18 @@ export default function Consent() {
       const record = await saveConsent(preferredLanguage, choices);
       setHasActiveRecord(true);
       if (!record.required_granted) {
-        setError("errors:please_grant_every_required_permission_before_continuing");
+        setError(
+          "errors:please_grant_every_required_permission_before_continuing",
+        );
         return;
       }
       navigate("/patient/interview");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "errors:unable_to_save_consent");
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "errors:unable_to_save_consent",
+      );
     } finally {
       setSaving(false);
     }
@@ -152,7 +163,11 @@ export default function Consent() {
       setChoices(emptyChoices());
       setHasActiveRecord(false);
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "errors:unable_to_revoke_consent");
+      setError(
+        revokeError instanceof Error
+          ? revokeError.message
+          : "errors:unable_to_revoke_consent",
+      );
     }
   };
 
@@ -166,7 +181,8 @@ export default function Consent() {
         </div>
       </section>
 
-      {loading && <Loader />}<div className="consent-layout" aria-busy={loading || saving}>
+      {loading && <Loader />}
+      <div className="consent-layout" aria-busy={loading || saving}>
         <div className="card language-card">
           <h2>{t("consent.language")}</h2>
           <div className="language-grid">
@@ -174,7 +190,9 @@ export default function Consent() {
               <button
                 type="button"
                 key={language.code}
-                className={language.code === preferredLanguage ? "selected" : ""}
+                className={
+                  language.code === preferredLanguage ? "selected" : ""
+                }
                 onClick={() => {
                   speech.stopSpeaking();
                   setPreferredLanguage(language.code);
@@ -191,17 +209,33 @@ export default function Consent() {
               <button
                 type="button"
                 className="play-button"
-                onClick={() => speech.speaking ? speech.stopSpeaking() : speech.speak(explanation)}
-                aria-label={speech.speaking ? ui("consent:stop_consent_audio") : ui("consent:play_consent_audio")}
+                onClick={() =>
+                  speech.speaking
+                    ? speech.stopSpeaking()
+                    : speech.speak(explanation)
+                }
+                aria-label={
+                  speech.speaking
+                    ? ui("consent:stop_consent_audio")
+                    : ui("consent:play_consent_audio")
+                }
                 disabled={!speech.speechSynthesisSupported}
               >
                 {speech.speaking ? "Ⅱ" : <Play size={22} fill="currentColor" />}
               </button>
               <div>
                 <strong>{t("consent.listen")}</strong>
-                <p><span className="read-dot" />{ui("consent:web_speech")}{preferredLanguage}</p>
+                <p>
+                  <span className="read-dot" />
+                  {ui("consent:web_speech")}
+                  {preferredLanguage}
+                </p>
               </div>
-              <button type="button" className="icon-button" onClick={() => speech.speak(explanation)}>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => speech.speak(explanation)}
+              >
                 <RotateCcw size={17} />
               </button>
             </div>
@@ -209,8 +243,15 @@ export default function Consent() {
               <span style={{ width: speech.speaking ? "70%" : "0%" }} />
             </div>
             <div className="audio-controls">
-              <span>{speech.speaking ? ui("consent:reading_aloud") : ui("consent:ready")}</span>
-              <button type="button"><Volume2 size={16} />{ui("consent:095x")}</button>
+              <span>
+                {speech.speaking
+                  ? ui("consent:reading_aloud")
+                  : ui("consent:ready")}
+              </span>
+              <button type="button">
+                <Volume2 size={16} />
+                {ui("consent:095x")}
+              </button>
             </div>
             <p className="transcript">“{explanation}”</p>
           </div>
@@ -225,22 +266,42 @@ export default function Consent() {
                 type="checkbox"
                 checked={choices[category.key]}
                 disabled={loading}
-                onChange={() => setChoices((current) => ({
-                  ...current,
-                  [category.key]: !current[category.key],
-                }))}
+                onChange={() =>
+                  setChoices((current) => ({
+                    ...current,
+                    [category.key]: !current[category.key],
+                  }))
+                }
               />
-              <span className="custom-check"><Check size={13} /></span>
+              <span className="custom-check">
+                <Check size={13} />
+              </span>
               <span>
-                {t(category.title)} {category.required && <b className="required-tag">{t("consent.required")}</b>}
+                {t(category.title)}{" "}
+                {category.required && (
+                  <b className="required-tag">{t("consent.required")}</b>
+                )}
                 <small>{t(category.description)}</small>
               </span>
             </label>
           ))}
 
-          {error && <div className="form-error" role="alert">{errorText(error)}<button className="button secondary" disabled={loading || saving} onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button></div>}
+          {error && (
+            <div className="form-error" role="alert">
+              {errorText(error)}
+              <button
+                className="button secondary"
+                disabled={loading || saving}
+                onClick={() => setRetryCount((n) => n + 1)}
+              >
+                {ui("common:retry")}
+              </button>
+            </div>
+          )}
           {!requiredGranted && !loading && (
-            <div className="consent-warning"><AlertTriangle size={16} /> {t("consent.warning")}</div>
+            <div className="consent-warning">
+              <AlertTriangle size={16} /> {t("consent.warning")}
+            </div>
           )}
 
           <button
