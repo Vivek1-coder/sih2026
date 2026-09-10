@@ -5,8 +5,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
-ARG VITE_API_URL=https://sih2026-t80s.onrender.com
-ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_API_BASE_URL=https://sih2026-t80s.onrender.com
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 FROM nginx:1.29-alpine

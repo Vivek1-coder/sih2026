@@ -16,7 +16,7 @@ services:
     environment:
       ENVIRONMENT: development
       FRONTEND_ORIGIN: http://localhost:5173
-      FRONTEND_ORIGINS: http://127.0.0.1:5173
+      FRONTEND_ORIGINS: https://medikiosksih26.vercel.app/
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-local-access-secret-change-before-production}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-refresh-secret-change-before-production}
       OTP_SECRET: ${OTP_SECRET:-local-otp-secret-change-before-production}
@@ -46,7 +46,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://sih2026-t80s.onrender.com}
     restart: unless-stopped
     ports:
       - "5173:80"
