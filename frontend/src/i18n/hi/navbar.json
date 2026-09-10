@@ -1,0 +1,21 @@
+{
+  "nav.label": "मुख्य नेविगेशन",
+  "nav.identify": "पहचान",
+  "nav.consent": "सहमति",
+  "nav.interview": "साक्षात्कार",
+  "nav.triage": "तत्काल जाँच चेतावनी",
+  "nav.summary": "सारांश की समीक्षा",
+  "nav.complete": "मुलाकात पूरी",
+  "nav.queue": "डॉक्टर की कतार",
+  "nav.consultation": "परामर्श",
+  "nav.welcome": "स्वागत है",
+  "nav.home": "रोगी मुखपृष्ठ",
+  "nav.patient": "रोगी",
+  "nav.lab": "प्रयोगशाला",
+  "nav.physician": "डॉक्टर",
+  "nav.signOut": "साइन आउट",
+  "header.language": "भाषा",
+  "header.accessibility": "बड़ा पाठ",
+  "header.help": "सहायता",
+  "header.user": "डेमो उपयोगकर्ता"
+}

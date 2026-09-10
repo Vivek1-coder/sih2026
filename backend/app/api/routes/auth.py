@@ -1077,18 +1077,12 @@ def request_otp(
     # Return a generic response to reduce account enumeration.
     if not user:
         return OTPRequestResponse(
-            message=(
-                "If an account exists, "
-                "an OTP has been sent."
-            )
+            message="errors:otpSent"
         )
 
     if not user.is_active:
         return OTPRequestResponse(
-            message=(
-                "If an account exists, "
-                "an OTP has been sent."
-            )
+            message="errors:otpSent"
         )
 
     _create_otp(
@@ -1096,10 +1090,7 @@ def request_otp(
     )
 
     return OTPRequestResponse(
-        message=(
-            "OTP sent successfully. "
-            "For the current demo use 123456."
-        )
+        message="errors:otpSent"
     )
 
 
@@ -1315,7 +1306,7 @@ def logout(
     )
 
     return LogoutResponse(
-        message="Logged out"
+        message="errors:loggedOut"
     )
 
 

@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { ui, locale } from "../i18n";
 import {
   Activity,
   BadgeCheck,
@@ -150,44 +152,44 @@ const consentCategories: Array<{
 }> = [
   {
     key: "medical_history",
-    title: "Medical history collection",
+    title: "profile:medical_history_collection",
     description:
-      "Allows the platform to collect the health information shared by the patient.",
+      "profile:allows_the_platform_to_collect_the_health_information_shared",
     required: true,
   },
   {
     key: "ai_assistance",
-    title: "AI-assisted processing",
+    title: "profile:aiassisted_processing",
     description:
-      "Allows AI to analyze the supplied information and prepare a clinical history draft.",
+      "profile:allows_ai_to_analyze_the_supplied_information_and_prepare",
     required: true,
   },
   {
     key: "physician_sharing",
-    title: "Physician sharing",
+    title: "profile:physician_sharing",
     description:
-      "Allows the generated patient summary to be shared with the assigned physician.",
+      "profile:allows_the_generated_patient_summary_to_be_shared_with",
     required: true,
   },
   {
     key: "document_processing",
-    title: "Document processing",
+    title: "profile:document_processing",
     description:
-      "Allows uploaded prescriptions, reports and discharge summaries to be processed.",
+      "profile:allows_uploaded_prescriptions_reports_and_discharge_summaries_to_be",
     required: false,
   },
   {
     key: "abha_linking",
-    title: "ABHA linking",
+    title: "profile:abha_linking",
     description:
-      "Allows the patient's health information to be linked with their ABHA profile.",
+      "profile:allows_the_patients_health_information_to_be_linked_with",
     required: false,
   },
   {
     key: "privacy_notice",
-    title: "Privacy notice",
+    title: "profile:privacy_notice",
     description:
-      "Confirms that the patient has read and accepted the privacy notice.",
+      "profile:confirms_that_the_patient_has_read_and_accepted_the",
     required: true,
   },
 ];
@@ -227,6 +229,7 @@ async function fetchPatientProfile(): Promise<
     `${API_BASE_URL}/profile/`,
     {
       method: "GET",
+      signal: AbortSignal.timeout(45000),
       credentials: "include",
     },
   );
@@ -234,12 +237,12 @@ async function fetchPatientProfile(): Promise<
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error(
-        "Your session has expired. Please login again.",
+        "errors:your_session_has_expired_please_login_again",
       );
     }
 
     throw new Error(
-      "Unable to load patient profile.",
+      "errors:unable_to_load_patient_profile",
     );
   }
 
@@ -257,6 +260,7 @@ async function fetchPatientConsent(): Promise<ConsentRecord | null> {
     `${API_BASE_URL}/consent`,
     {
       method: "GET",
+      signal: AbortSignal.timeout(45000),
       credentials: "include",
     },
   );
@@ -267,7 +271,7 @@ async function fetchPatientConsent(): Promise<ConsentRecord | null> {
 
   if (!response.ok) {
     throw new Error(
-      "Unable to load consent information.",
+      "errors:unable_to_load_consent_information",
     );
   }
 
@@ -282,7 +286,7 @@ function formatDate(
   value: string | null | undefined,
 ) {
   if (!value) {
-    return "Not available";
+    return ui("common:notAvailable");
   }
 
   const date = new Date(value);
@@ -291,7 +295,7 @@ function formatDate(
     return value;
   }
 
-  return new Intl.DateTimeFormat("en-IN", {
+  return new Intl.DateTimeFormat(locale(), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -302,7 +306,7 @@ function formatDateTime(
   value: string | null | undefined,
 ) {
   if (!value) {
-    return "Not available";
+    return ui("common:notAvailable");
   }
 
   const date = new Date(value);
@@ -311,7 +315,7 @@ function formatDateTime(
     return value;
   }
 
-  return new Intl.DateTimeFormat("en-IN", {
+  return new Intl.DateTimeFormat(locale(), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -333,7 +337,7 @@ function maskAadhaar(aadhaar: string) {
 
 function formatMobile(mobile: string | null) {
   if (!mobile) {
-    return "Not provided";
+    return ui("common:notProvided");
   }
 
   const digits = mobile.replace(/\D/g, "");
@@ -357,6 +361,7 @@ function VerificationBadge({
 }: {
   verified: boolean;
 }) {
+  useTranslation();
   return (
     <span
       className={
@@ -367,14 +372,10 @@ function VerificationBadge({
     >
       {verified ? (
         <>
-          <BadgeCheck size={14} />
-          Verified
-        </>
+          <BadgeCheck size={14} />{ui("profile:verified")}</>
       ) : (
         <>
-          <Clock size={14} />
-          Not verified
-        </>
+          <Clock size={14} />{ui("profile:not_verified")}</>
       )}
     </span>
   );
@@ -399,7 +400,7 @@ function VerificationBadge({
 
 //       <div className="profile-detail-content">
 //         <span className="profile-detail-label">
-//           {label}
+//           {ui(label)}
 //         </span>
 
 //         <strong>{value}</strong>
@@ -425,6 +426,7 @@ function ProfileField({
   value: React.ReactNode;
   verified?: boolean;
 }) {
+  useTranslation();
   return (
     <div className="profile-field">
       <div className="profile-field-icon">
@@ -432,7 +434,7 @@ function ProfileField({
       </div>
 
       <div className="profile-field-content">
-        <span>{label}</span>
+        <span>{ui(label)}</span>
 
         <div className="profile-field-value">
           <strong>{value}</strong>
@@ -452,6 +454,7 @@ function ProfileField({
 ========================================================= */
 
 export default function PatientProfilePage() {
+  useTranslation();
   const [profile, setProfile] =
     useState<PatientProfile | null>(null);
 
@@ -520,7 +523,7 @@ export default function PatientProfilePage() {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : "Unable to load patient profile.",
+            : "errors:unable_to_load_patient_profile",
         );
       } finally {
         if (active) {
@@ -579,9 +582,7 @@ export default function PatientProfilePage() {
     return (
       <div>
         <div className="card">
-          <div className="profile-loading">
-            Loading patient profile...
-          </div>
+          <div className="profile-loading">{ui("profile:loading_patient_profile")}</div>
         </div>
       </div>
     );
@@ -596,11 +597,9 @@ export default function PatientProfilePage() {
       <div>
         <section className="page-intro">
           <div>
-            <span className="eyebrow">
-              Patient
-            </span>
+            <span className="eyebrow">{ui("profile:patient")}</span>
 
-            <h1>Patient profile</h1>
+            <h1>{ui("profile:patient_profile")}</h1>
           </div>
         </section>
 
@@ -609,7 +608,7 @@ export default function PatientProfilePage() {
           role="alert"
         >
           {error ||
-            "Unable to load patient profile."}
+            ui("profile:unable_to_load_patient_profile")}
         </div>
       </div>
     );
@@ -656,12 +655,11 @@ return (
                   }
                 >
                   <span />
-                  {profile.is_active ? "Active" : "Inactive"}
+                  {profile.is_active ? ui("profile:active") : ui("profile:inactive")}
                 </span>
               </div>
 
-              <p>
-                Patient ID{" "}
+              <p>{ui("profile:patient_id")}{" "}
                 <strong>{profile.id}</strong>
               </p>
             </div>
@@ -691,7 +689,7 @@ return (
 
         <div className="profile-completion-card">
           <div className="profile-completion-head">
-            <span>Profile completion</span>
+            <span>{ui("profile:profile_completion")}</span>
             <strong>{profileCompletion}%</strong>
           </div>
 
@@ -703,10 +701,7 @@ return (
             />
           </div>
 
-          <small>
-            Keep your details updated for smoother
-            consultations.
-          </small>
+          <small>{ui("profile:keep_your_details_updated_for_smoother_consultations")}</small>
         </div>
       </div>
     </section>
@@ -722,11 +717,11 @@ return (
         </div>
 
         <div>
-          <span>Profile status</span>
+          <span>{ui("profile:profile_status")}</span>
           <strong>
             {profile.is_verified
-              ? "Verified"
-              : "Verification pending"}
+              ? ui("profile:verified")
+              : ui("profile:verification_pending")}
           </strong>
         </div>
       </div>
@@ -737,14 +732,14 @@ return (
         </div>
 
         <div>
-          <span>ABHA</span>
+          <span>{ui("profile:abha")}</span>
           <strong>
             {/* {profile.abha_id
               ? profile.verification.abha
                 ? "Linked & verified"
                 : "Linked"
               : "Not linked"} */
-              "Not Linked"
+              ui("profile:not_linked")
               }
           </strong>
         </div>
@@ -756,11 +751,11 @@ return (
         </div>
 
         <div>
-          <span>Consent</span>
+          <span>{ui("profile:consent")}</span>
           <strong>
             {profile.consent?.status === "active"
-              ? "Active"
-              : "Not active"}
+              ? ui("profile:active")
+              : ui("profile:not_active")}
           </strong>
         </div>
       </div>
@@ -771,7 +766,7 @@ return (
         </div>
 
         <div>
-          <span>Last login</span>
+          <span>{ui("profile:last_login")}</span>
           <strong>
             {formatDateTime(profile.last_login_at)}
           </strong>
@@ -799,11 +794,8 @@ return (
               </div>
 
               <div>
-                <h2>Personal information</h2>
-                <p>
-                  Your basic personal and contact
-                  details
-                </p>
+                <h2>{ui("profile:personal_information")}</h2>
+                <p>{ui("profile:your_basic_personal_and_contact_details")}</p>
               </div>
             </div>
           </div>
@@ -811,13 +803,13 @@ return (
           <div className="profile-info-grid">
             <ProfileField
               icon={<UserRound size={18} />}
-              label="Full name"
+              label={ui("profile:full_name")}
               value={profile.full_name}
             />
 
             <ProfileField
               icon={<CalendarDays size={18} />}
-              label="Date of birth"
+              label={ui("profile:date_of_birth")}
               value={formatDate(
                 profile.date_of_birth,
               )}
@@ -825,13 +817,13 @@ return (
 
             <ProfileField
               icon={<CircleUserRound size={18} />}
-              label="Gender"
+              label={ui("profile:gender")}
               value={profile.gender}
             />
 
             <ProfileField
               icon={<Phone size={18} />}
-              label="Mobile number"
+              label={ui("profile:mobile_number")}
               value={formatMobile(profile.mobile)}
               verified={
                 false
@@ -840,9 +832,9 @@ return (
 
             <ProfileField
               icon={<Mail size={18} />}
-              label="Email address"
+              label={ui("profile:email_address")}
               value={
-                profile.email ?? "Not provided"
+                profile.email ?? ui("common:notProvided")
               }
               verified={
                 false
@@ -861,10 +853,8 @@ return (
               </div>
 
               <div>
-                <h2>Address</h2>
-                <p>
-                  Registered residential address
-                </p>
+                <h2>{ui("profile:address")}</h2>
+                <p>{ui("profile:registered_residential_address")}</p>
               </div>
             </div>
           </div>
@@ -893,17 +883,15 @@ return (
                 <IdCard size={20} />
               </div>
               <div>
-                <h2>Health identity</h2>
-                <p>
-                  Aadhaar and ABHA information
-                </p>
+                <h2>{ui("profile:health_identity")}</h2>
+                <p>{ui("profile:aadhaar_and_abha_information")}</p>
               </div>
             </div>
           </div>
           <div className="identity-list">
             <div className="identity-item">
               <div className="identity-top">
-                <span>Aadhaar</span>
+                <span>{ui("profile:aadhaar")}</span>
 
                 <VerificationBadge
                   verified={
@@ -920,7 +908,7 @@ return (
 
             <div className="identity-item">
               <div className="identity-top">
-                <span>ABHA ID</span>
+                <span>{ui("profile:abha_id")}</span>
 
                 {profile.abha_id && (
                   <VerificationBadge
@@ -933,7 +921,7 @@ return (
               </div>
 
               <strong>
-                {profile.abha_id ?? "Not linked"}
+                {profile.abha_id ?? ui("profile:not_linked_2")}
               </strong>
             </div>
           </div>
@@ -941,10 +929,7 @@ return (
           <div className="security-note">
             <ShieldCheck size={18} />
 
-            <p>
-              Aadhaar information is masked to
-              protect your identity.
-            </p>
+            <p>{ui("profile:aadhaar_information_is_masked_to_protect_your_identity")}</p>
           </div>
         </section>
 
@@ -958,10 +943,8 @@ return (
               </div>
 
               <div>
-                <h2>Emergency contact</h2>
-                <p>
-                  Contact during an emergency
-                </p>
+                <h2>{ui("profile:emergency_contact")}</h2>
+                <p>{ui("profile:contact_during_an_emergency")}</p>
               </div>
             </div>
           </div>
@@ -975,7 +958,7 @@ return (
               <div>
                 <strong>
                   {profile.relationship ??
-                    "Emergency contact"}
+                    ui("profile:emergency_contact")}
                 </strong>
 
                 <span>
@@ -988,7 +971,7 @@ return (
               <a
                 href={`tel:${profile.emergency_contact}`}
                 className="phone-action"
-                aria-label="Call emergency contact"
+                aria-label={ui("profile:call_emergency_contact")}
               >
                 <Phone size={17} />
               </a>
@@ -997,9 +980,7 @@ return (
             <div className="empty-state">
               <UsersRound size={23} />
 
-              <span>
-                No emergency contact added.
-              </span>
+              <span>{ui("profile:no_emergency_contact_added")}</span>
             </div>
           )}
         </section>
@@ -1018,12 +999,9 @@ return (
           </div>
 
           <div>
-            <h2>Consent & permissions</h2>
+            <h2>{ui("profile:consent_permissions")}</h2>
 
-            <p>
-              Review how your health information
-              can be processed and shared.
-            </p>
+            <p>{ui("profile:review_how_your_health_information_can_be_processed")}</p>
           </div>
         </div>
 
@@ -1052,11 +1030,9 @@ return (
           </div>
 
           <div>
-            <strong>No consent record</strong>
+            <strong>{ui("profile:no_consent_record")}</strong>
 
-            <p>
-              You have not provided consent yet.
-            </p>
+            <p>{ui("profile:you_have_not_provided_consent_yet")}</p>
           </div>
         </div>
       ) : (
@@ -1065,7 +1041,7 @@ return (
 
           <div className="consent-meta-grid">
             <div>
-              <span>Preferred language</span>
+              <span>{ui("profile:preferred_language")}</span>
 
               <strong>
                 {languageNames[
@@ -1078,7 +1054,7 @@ return (
             </div>
 
             <div>
-              <span>Consent provided</span>
+              <span>{ui("profile:consent_provided")}</span>
 
               <strong>
                 {formatDateTime(
@@ -1088,7 +1064,7 @@ return (
             </div>
 
             <div>
-              <span>Last updated</span>
+              <span>{ui("profile:last_updated")}</span>
 
               <strong>
                 {formatDateTime(
@@ -1134,18 +1110,16 @@ return (
                     <div className="permission-content">
                       <div className="permission-heading">
                         <strong>
-                          {category.title}
+                          {ui(category.title)}
                         </strong>
 
                         {category.required && (
-                          <span>
-                            Required
-                          </span>
+                          <span>{ui("profile:required")}</span>
                         )}
                       </div>
 
                       <p>
-                        {category.description}
+                        {ui(category.description)}
                       </p>
                     </div>
 
@@ -1157,8 +1131,8 @@ return (
                       }`}
                     >
                       {granted
-                        ? "Granted"
-                        : "Not granted"}
+                        ? ui("profile:granted")
+                        : ui("profile:not_granted")}
                     </div>
                   </div>
                 );
@@ -1181,10 +1155,8 @@ return (
           </div>
 
           <div>
-            <h2>Account activity</h2>
-            <p>
-              Security and account information
-            </p>
+            <h2>{ui("profile:account_activity")}</h2>
+            <p>{ui("profile:security_and_account_information")}</p>
           </div>
         </div>
       </div>
@@ -1194,7 +1166,7 @@ return (
           <CalendarDays size={19} />
 
           <div>
-            <span>Profile created</span>
+            <span>{ui("profile:profile_created")}</span>
 
             <strong>
               {formatDateTime(profile.created_at)}
@@ -1206,7 +1178,7 @@ return (
           <Clock size={19} />
 
           <div>
-            <span>Last login</span>
+            <span>{ui("profile:last_login")}</span>
 
             <strong>
               {formatDateTime(
@@ -1220,12 +1192,12 @@ return (
           <ShieldCheck size={19} />
 
           <div>
-            <span>Verification</span>
+            <span>{ui("profile:verification")}</span>
 
             <strong>
               {profile.is_verified
-                ? "Verified account"
-                : "Verification pending"}
+                ? ui("profile:verified_account")
+                : ui("profile:verification_pending")}
             </strong>
           </div>
         </div>

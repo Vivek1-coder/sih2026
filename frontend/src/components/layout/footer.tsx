@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { ui } from "../../i18n";
 import {
   ArrowUpRight,
   HeartPulse,
@@ -9,6 +11,7 @@ import useAccessibility from "../../hooks/useAccessibility";
 import './styles/footer.css'
 
 export default function Footer() {
+  useTranslation();
   const { t } = useAccessibility();
 
   const currentYear = new Date().getFullYear();
@@ -28,8 +31,8 @@ export default function Footer() {
               </div>
 
               <div>
-                <strong>MediKiosk</strong>
-                <span>Smarter patient intake</span>
+                <strong>{ui("footer:medikiosk")}</strong>
+                <span>{ui("footer:smarter_patient_intake")}</span>
               </div>
             </div>
 
@@ -39,36 +42,30 @@ export default function Footer() {
 
             <div className="footer-trust-badge">
               <ShieldCheck size={15} />
-              <span>Privacy-first healthcare experience</span>
+              <span>{ui("footer:privacyfirst_healthcare_experience")}</span>
             </div>
           </div>
 
           {/* Product */}
           <div className="footer-column">
-            <span className="footer-column-title">Platform</span>
+            <span className="footer-column-title">{ui("footer:platform")}</span>
 
-            <nav aria-label="Platform links">
-              <a href="/patient/identify">
-                Patient check-in
-                <ArrowUpRight size={13} />
+            <nav aria-label={ui("footer:platform_links")}>
+              <a href="/patient/identify">{ui("footer:patient_checkin")}<ArrowUpRight size={13} />
               </a>
 
-              <a href="/physician">
-                Physician dashboard
-                <ArrowUpRight size={13} />
+              <a href="/physician">{ui("footer:physician_dashboard")}<ArrowUpRight size={13} />
               </a>
 
-              <a href="#workflow">
-                How it works
-              </a>
+              <a href="#workflow">{ui("footer:how_it_works")}</a>
             </nav>
           </div>
 
           {/* Support */}
           <div className="footer-column">
-            <span className="footer-column-title">Support</span>
+            <span className="footer-column-title">{ui("footer:support")}</span>
 
-            <nav aria-label="Support links">
+            <nav aria-label={ui("footer:support_links")}>
               <a href="#help" id="help">
                 <HelpCircle size={14} />
                 {t("footer.help")}
@@ -89,8 +86,8 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <div className="footer-copyright">
-            <span>© {currentYear} MediKiosk.</span>
-            <span>Built for better consultations.</span>
+            <span>© {currentYear}{ui("footer:medikiosk_2")}</span>
+            <span>{ui("footer:built_for_better_consultations")}</span>
           </div>
 
           <p className="footer-disclaimer">

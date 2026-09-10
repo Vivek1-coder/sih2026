@@ -1,3 +1,5 @@
+import i18n, { locale } from '../i18n';
+import { useTranslation } from 'react-i18next';
 import {
   useCallback,
   useEffect,
@@ -63,10 +65,11 @@ export default function AuthProvider({
      Accessibility / Language
   ======================================================= */
 
-  const [
-    preferredLanguage,
-    setPreferredLanguage,
-  ] = useState("en-IN");
+  useTranslation();
+  const preferredLanguage = locale();
+  const setPreferredLanguage = useCallback((language: string) => {
+    void i18n.changeLanguage(language.startsWith('hi') ? 'hi' : 'en');
+  }, []);
 
   /* =======================================================
      Restore Existing Session
@@ -259,6 +262,7 @@ export default function AuthProvider({
       reloadUser,
       logout,
       preferredLanguage,
+      setPreferredLanguage,
     ],
   );
 

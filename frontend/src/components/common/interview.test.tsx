@@ -196,7 +196,7 @@ describe("Interview voice and touch input", () => {
     mocks.startInterview.mockRejectedValue(new Error("Network error"));
     render(<Interview go={mocks.navigate} />);
     const errorMsg = await screen.findByRole("alert");
-    expect(errorMsg).toHaveTextContent("Network error");
+    expect(errorMsg).toHaveTextContent("The request could not be completed. Please try again.");
     // Retry button present
     expect(screen.getByRole("button", { name: /retry/i })).toBeInTheDocument();
   });

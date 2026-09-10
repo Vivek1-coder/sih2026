@@ -1,3 +1,9 @@
+import { formatNumber } from "../i18n";
+import Loader from "../components/common/Loader";
+import Skeleton from "../components/common/Skeleton";
+import { errorText } from "../i18n";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../i18n";
 import {
   Activity,
   ArrowRight,
@@ -19,27 +25,28 @@ const priorityLabel = (value: QueuePatient["priority"]) =>
   value === "urgent" ? "Urgent" : value === "priority" ? "Priority" : "Routine";
 
 export default function Physician() {
+  useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [patients, setPatients] = useState<QueuePatient[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
-    const load = () => getPhysicianQueue()
-      .then((queue) => active && setPatients(queue))
-      .catch(
-        (reason) =>
-          active &&
-          setError(
-            reason instanceof Error ? reason.message : "Queue unavailable",
-          ),
-      );
-    void load();
-    const timer = window.setInterval(load, 5000);
-    return () => {
-      window.clearInterval(timer);
-      active = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const load = async () => {
+      setLoading(true); setError('');
+      try {
+        const queue = await getPhysicianQueue();
+        if (!active) return;
+        setPatients(queue);
+        timer = setTimeout(load, 5000);
+      } catch { if (active) setError('errors:queue_unavailable'); }
+      finally { if (active) setLoading(false); }
     };
-  }, []);
+    void load();
+    return () => { active = false; clearTimeout(timer); };
+  }, [retryCount]);
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return patients.filter(
@@ -58,10 +65,10 @@ export default function Physician() {
     0,
   );
   const stats = [
-    ["Waiting patients", patients.length, Clock3],
-    ["Priority cases", priorityCount, Zap],
-    ["Submitted histories", patients.length, Activity],
-    ["Source documents", documentCount, FileText],
+    ["physician:waiting_patients", patients.length, Clock3],
+    ["physician:priority_cases", priorityCount, Zap],
+    ["physician:submitted_histories", patients.length, Activity],
+    ["physician:source_documents", documentCount, FileText],
   ] as const;
   const navigate = useNavigate();
   return (
@@ -70,62 +77,59 @@ export default function Physician() {
       <main className="physician-main" id="physician-content" tabIndex={-1}>
         <div className="dashboard-head">
           <div>
-            <span className="eyebrow">Live consultation queue</span>
-            <h1>OPD consultation queue</h1>
-            <p>Red-flag patients are automatically placed first.</p>
+            <span className="eyebrow">{ui("physician:live_consultation_queue")}</span>
+            <h1>{ui("physician:opd_consultation_queue")}</h1>
+            <p>{ui("physician:redflag_patients_are_automatically_placed_first")}</p>
           </div>
         </div>
-        <div className="stats-grid" aria-label="Queue statistics">
+        <div className="stats-grid" aria-label={ui("physician:queue_statistics")}>
           {stats.map(([label, value, Icon]) => (
             <div className="card stat-card" key={label}>
               <div className="stat-icon">
                 <Icon size={18} />
               </div>
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>Live demo data</small>
+              <span>{ui(label)}</span>
+              <strong>{formatNumber(value)}</strong>
+              <small>{ui("physician:live_demo_data")}</small>
             </div>
           ))}
         </div>
         <div className="ai-review-note physician-ai-notice" role="note">
           <Sparkles size={16} />
-          <span>
-            All histories are AI-drafted organisational aids—not diagnoses—and
-            require physician review before confirmation.
-          </span>
+          <span>{ui("physician:all_histories_are_aidrafted_organisational_aidsnot_diagnosesand_require")}</span>
         </div>
         <section className="card queue-card" aria-labelledby="queue-heading">
           <div className="card-title">
             <div>
-              <h2 id="queue-heading">Patient queue</h2>
-              <p className="muted">Priority order · newest data</p>
+              <h2 id="queue-heading">{ui("physician:patient_queue")}</h2>
+              <p className="muted">{ui("physician:priority_order_newest_data")}</p>
             </div>
             <label className="search-box">
               <Search size={17} />
-              <span className="sr-only">Search patients</span>
+              <span className="sr-only">{ui("physician:search_patients")}</span>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search patients"
+                placeholder={ui("physician:search_patients")}
               />
             </label>
           </div>
           {error && (
             <div className="form-error" role="alert">
-              {error}
+              {errorText(error)}<button className="button secondary" onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button>
             </div>
           )}
-          <div className="table-wrap">
+          {loading && (patients.length ? <Loader /> : <Skeleton />)}<div className="table-wrap" aria-busy={loading}>
             <table>
               <thead>
                 <tr>
-                  <th>Patient</th>
-                  <th>Complaint</th>
-                  <th>Priority</th>
-                  <th>Wait</th>
-                  <th>History</th>
+                  <th>{ui("physician:patient")}</th>
+                  <th>{ui("physician:complaint")}</th>
+                  <th>{ui("physician:priority")}</th>
+                  <th>{ui("physician:wait")}</th>
+                  <th>{ui("physician:history")}</th>
                   <th>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{ui("physician:actions")}</span>
                   </th>
                 </tr>
               </thead>
@@ -140,50 +144,48 @@ export default function Physician() {
                         <div>
                           <strong>{patient.display_name}</strong>
                           <small>
-                            {patient.token} · position {patient.queue_position}
+                            {patient.token}{ui("physician:position")}{formatNumber(patient.queue_position)}
                           </small>
                         </div>
                       </div>
                     </td>
                     <td>
                       {patient.complaint}
-                      <small>{patient.department}</small><small>{patient.location} · {patient.doctor_name || "Awaiting doctor assignment"}</small>
+                      <small>{ui(patient.department)}</small><small>{patient.location} · {patient.doctor_name || ui("physician:awaiting_doctor_assignment")}</small>
                     </td>
                     <td>
                       <PriorityBadge
                         priority={priorityLabel(patient.priority)}
                       />
                       {patient.red_flags.length > 0 && (
-                        <small>{patient.red_flags.length} red flag(s)</small>
+                        <small>{formatNumber(patient.red_flags.length)}{ui("physician:red_flags")}</small>
                       )}
                     </td>
                     <td>
-                      <Clock3 size={14} /> ~{patient.estimated_wait_minutes} min
-                    </td>
+                      <Clock3 size={14} /> {ui("common:waitMinutes", { value: formatNumber(patient.estimated_wait_minutes) })}</td>
                     <td>
                       <div className="mini-progress">
                         <span style={{ width: "100%" }} />
                       </div>
-                      <small>{patient.summary_status}</small>
+                      <small>{ui(patient.summary_status)}</small>
                     </td>
                     <td>
                       <button
                         className="open-button"
-                        aria-label={`Open ${patient.token}`}
+                        aria-label={ui("common:fileAction", { action: ui("physician:open"), filename: patient.token })}
                         onClick={() =>
                           navigate(
                             `/physician/patient/${encodeURIComponent(patient.patient_id)}`,
                           )
                         }
-                      >
-                        Open <ArrowRight size={14} />
+                      >{ui("physician:open")}<ArrowRight size={14} />
                       </button>
                     </td>
                   </tr>
                 ))}
-                {!error && filtered.length === 0 && (
+                {!loading && !error && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6}>No submitted patients are waiting.</td>
+                    <td colSpan={6}>{ui("physician:no_submitted_patients_are_waiting")}</td>
                   </tr>
                 )}
               </tbody>

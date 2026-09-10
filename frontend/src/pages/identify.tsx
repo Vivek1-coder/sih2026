@@ -1,3 +1,7 @@
+import Loader from "../components/common/Loader";
+import { errorText } from "../i18n";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../i18n";
 import { useState, type SubmitEvent } from "react";
 
 import {
@@ -69,6 +73,7 @@ export interface RegisterForm {
 ========================================================= */
 
 export default function Identify() {
+  useTranslation();
   const { t } = useAccessibility();
 
   const { setAuthenticatedUser } = useAuth();
@@ -214,11 +219,11 @@ export default function Identify() {
 
     if (!identifier) {
       if (loginMethod === "ABHA ID") {
-        setError("Please enter your ABHA number or ABHA address.");
+        setError("errors:please_enter_your_abha_number_or_abha_address");
       } else if (loginMethod === "Aadhaar") {
-        setError("Please enter your Aadhaar number.");
+        setError("errors:please_enter_your_aadhaar_number");
       } else {
-        setError("Please enter your email address or mobile number.");
+        setError("errors:please_enter_your_email_address_or_mobile_number");
       }
 
       return false;
@@ -230,7 +235,7 @@ export default function Identify() {
       const aadhaar = identifier.replace(/\D/g, "");
 
       if (aadhaar.length !== 12) {
-        setError("Please enter a valid 12-digit Aadhaar number.");
+        setError("errors:please_enter_a_valid_12digit_aadhaar_number");
 
         return false;
       }
@@ -248,7 +253,7 @@ export default function Identify() {
       );
 
       if (!validAbhaNumber && !validAbhaAddress) {
-        setError("Please enter a valid 14-digit ABHA number or ABHA address.");
+        setError("errors:please_enter_a_valid_14digit_abha_number_or_abha");
 
         return false;
       }
@@ -268,7 +273,7 @@ export default function Identify() {
 
       if (!validEmail && !validPhone) {
         setError(
-          "Please enter a valid email address or 10-digit mobile number.",
+          "errors:please_enter_a_valid_email_address_or_10digit_mobile",
         );
 
         return false;
@@ -311,7 +316,7 @@ export default function Identify() {
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to send OTP. Please try again.",
+          : "errors:unable_to_send_otp_please_try_again",
       );
     } finally {
       setOtpLoading(false);
@@ -326,7 +331,7 @@ export default function Identify() {
 
   const loginWithPassword = async () => {
     if (!loginForm.password.trim()) {
-      throw new Error("Please enter your password.");
+      throw new Error("errors:please_enter_your_password");
     }
 
     return loginWithPasswordApi({
@@ -346,13 +351,13 @@ export default function Identify() {
 
   const loginWithOtp = async () => {
     if (!otpSent) {
-      throw new Error("Please request an OTP first.");
+      throw new Error("errors:please_request_an_otp_first");
     }
 
     const otp = loginForm.otp.replace(/\D/g, "");
 
     if (otp.length !== 6) {
-      throw new Error("Please enter a valid 6-digit OTP.");
+      throw new Error("errors:please_enter_a_valid_6digit_otp");
     }
 
     return loginWithOtpApi({
@@ -407,7 +412,7 @@ export default function Identify() {
       setError(
         loginError instanceof Error
           ? loginError.message
-          : "Unable to sign in. Please try again.",
+          : "errors:unable_to_sign_in_please_try_again",
       );
     } finally {
       setLoading(false);
@@ -425,7 +430,7 @@ export default function Identify() {
     /* Full Name */
 
     if (!registerForm.fullName.trim()) {
-      setError("Please enter your full name.");
+      setError("errors:please_enter_your_full_name");
 
       return false;
     }
@@ -433,7 +438,7 @@ export default function Identify() {
     /* DOB */
 
     if (!registerForm.dateOfBirth) {
-      setError("Please enter your date of birth.");
+      setError("errors:please_enter_your_date_of_birth");
 
       return false;
     }
@@ -441,13 +446,13 @@ export default function Identify() {
     const dateOfBirth = new Date(registerForm.dateOfBirth);
 
     if (Number.isNaN(dateOfBirth.getTime())) {
-      setError("Please enter a valid date of birth.");
+      setError("errors:please_enter_a_valid_date_of_birth");
 
       return false;
     }
 
     if (dateOfBirth > new Date()) {
-      setError("Date of birth cannot be in the future.");
+      setError("errors:date_of_birth_cannot_be_in_the_future_1");
 
       return false;
     }
@@ -455,7 +460,7 @@ export default function Identify() {
     /* Gender */
 
     if (!registerForm.gender) {
-      setError("Please select your gender.");
+      setError("errors:please_select_your_gender");
 
       return false;
     }
@@ -465,7 +470,7 @@ export default function Identify() {
     const aadhaar = registerForm.aadhaar.replace(/\D/g, "");
 
     if (aadhaar.length !== 12) {
-      setError("Please enter a valid 12-digit Aadhaar number.");
+      setError("errors:please_enter_a_valid_12digit_aadhaar_number");
 
       return false;
     }
@@ -482,7 +487,7 @@ export default function Identify() {
       const validAddress = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+$/.test(abha);
 
       if (!validNumber && !validAddress) {
-        setError("Please enter a valid ABHA number/address or leave it empty.");
+        setError("errors:please_enter_a_valid_abha_numberaddress_or_leave_it");
 
         return false;
       }
@@ -610,7 +615,7 @@ export default function Identify() {
       setError(
         registrationError instanceof Error
           ? registrationError.message
-          : "Unable to create your account. Please try again.",
+          : "errors:unable_to_create_your_account_please_try_again",
       );
     } finally {
       setLoading(false);
@@ -628,13 +633,13 @@ export default function Identify() {
           <span className="eyebrow">{t("identify.eyebrow")}</span>
 
           <h1>
-            {pageMode === "login" ? "Patient Login" : "Create Patient Account"}
+            {pageMode === "login" ? ui("identify:patient_login") : ui("identify:create_patient_account")}
           </h1>
 
           <p>
             {pageMode === "login"
-              ? "Securely access your health profile using ABHA, Aadhaar, email, or mobile number."
-              : "Create your patient profile before continuing with your consultation."}
+              ? ui("identify:securely_access_your_health_profile_using_abha_aadhaar")
+              : ui("identify:create_your_patient_profile_before_continuing_with_your")}
           </p>
         </div>
 
@@ -652,16 +657,16 @@ export default function Identify() {
       {pageMode === "login" && (
         <form className="identify-card card" onSubmit={submitLogin}>
           <div className="login-section-heading">
-            <h2>Sign in to your account</h2>
+            <h2>{ui("identify:sign_in_to_your_account")}</h2>
 
-            <p>Select how you want to identify yourself.</p>
+            <p>{ui("identify:select_how_you_want_to_identify_yourself")}</p>
           </div>
 
           {/* =============================================
               Login Method
           ============================================= */}
 
-          <div className="tabs" role="tablist" aria-label="Login method">
+          <div className="tabs" role="tablist" aria-label={ui("identify:login_method")}>
             {(["ABHA ID", "Aadhaar", "Email / Phone"] as LoginMethod[]).map(
               (method) => (
                 <button
@@ -672,7 +677,7 @@ export default function Identify() {
                   className={loginMethod === method ? "active" : ""}
                   onClick={() => handleLoginMethodChange(method)}
                 >
-                  {method}
+                  {ui(method)}
                 </button>
               ),
             )}
@@ -686,17 +691,17 @@ export default function Identify() {
             <Field
               label={
                 loginMethod === "ABHA ID"
-                  ? "ABHA number or address"
+                  ? ui("identify:abha_number_or_address")
                   : loginMethod === "Aadhaar"
-                    ? "Aadhaar number"
-                    : "Email or mobile number"
+                    ? ui("identify:aadhaar_number")
+                    : ui("identify:email_or_mobile_number")
               }
               placeholder={
                 loginMethod === "ABHA ID"
-                  ? "14-digit ABHA or name@abdm"
+                  ? ui("identify:14digit_abha_or_nameabdm")
                   : loginMethod === "Aadhaar"
-                    ? "Enter 12-digit Aadhaar number"
-                    : "you@example.com or 9876543210"
+                    ? ui("identify:enter_12digit_aadhaar_number")
+                    : ui("identify:youexamplecom_or_9876543210")
               }
               type={loginMethod === "Aadhaar" ? "password" : "text"}
               value={loginForm.identifier}
@@ -720,7 +725,7 @@ export default function Identify() {
             <div
               className="tabs auth-mode-tabs"
               role="tablist"
-              aria-label="Authentication mode"
+              aria-label={ui("identify:authentication_mode")}
             >
               <button
                 type="button"
@@ -729,9 +734,7 @@ export default function Identify() {
                 className={authMode === "password" ? "active" : ""}
                 onClick={() => handleAuthModeChange("password")}
               >
-                <KeyRound size={16} />
-                Password
-              </button>
+                <KeyRound size={16} />{ui("identify:password")}</button>
 
               <button
                 type="button"
@@ -740,9 +743,7 @@ export default function Identify() {
                 className={authMode === "otp" ? "active" : ""}
                 onClick={() => handleAuthModeChange("otp")}
               >
-                <MessageSquareText size={16} />
-                OTP
-              </button>
+                <MessageSquareText size={16} />{ui("identify:otp")}</button>
             </div>
 
             {/* ===========================================
@@ -751,9 +752,9 @@ export default function Identify() {
 
             {authMode === "password" && (
               <Field
-                label="Password"
+                label={ui("identify:password")}
                 type="password"
-                placeholder="Enter your password"
+                placeholder={ui("identify:enter_your_password")}
                 value={loginForm.password}
                 onChange={(event) => {
                   setLoginForm((previous) => ({
@@ -775,8 +776,8 @@ export default function Identify() {
               <div className="otp-section">
                 {otpSent && (
                   <Field
-                    label="Enter OTP"
-                    placeholder="Enter 6-digit OTP"
+                    label={ui("identify:enter_otp")}
+                    placeholder={ui("identify:enter_6digit_otp")}
                     value={loginForm.otp}
                     onChange={(event) => {
                       const value = event.target.value
@@ -802,10 +803,10 @@ export default function Identify() {
                   <MessageSquareText size={17} />
 
                   {otpLoading
-                    ? "Sending OTP..."
+                    ? <Loader label="identify:sending_otp" />
                     : otpSent
-                      ? "Resend OTP"
-                      : "Send OTP"}
+                      ? ui("identify:resend_otp")
+                      : ui("identify:send_otp")}
                 </button>
               </div>
             )}
@@ -816,9 +817,7 @@ export default function Identify() {
 
             {loginMethod === "ABHA ID" && (
               <button className="scan-link" type="button">
-                <Zap size={17} />
-                Scan ABHA QR instead
-              </button>
+                <Zap size={17} />{ui("identify:scan_abha_qr_instead")}</button>
             )}
 
             {/* ===========================================
@@ -828,10 +827,7 @@ export default function Identify() {
             <div className="notice">
               <ShieldCheck size={17} />
 
-              <span>
-                Your credentials are sent securely to the authentication server
-                and are not stored in browser storage.
-              </span>
+              <span>{ui("identify:your_credentials_are_sent_securely_to_the_authentication")}</span>
             </div>
           </div>
 
@@ -841,13 +837,13 @@ export default function Identify() {
 
           {error && (
             <div className="form-error" role="alert">
-              {error}
+              {errorText(error)}
             </div>
           )}
 
           {message && (
             <div className="form-success" role="status">
-              {message}
+              {errorText(message)}
             </div>
           )}
 
@@ -865,16 +861,14 @@ export default function Identify() {
                 clearMessages();
               }}
             >
-              <UserPlus size={17} />
-              New patient? Register
-            </button>
+              <UserPlus size={17} />{ui("identify:new_patient_register")}</button>
 
             <button type="submit" className="button primary" disabled={loading}>
               {loading
-                ? "Signing in..."
+                ? <Loader label="identify:signing_in" />
                 : authMode === "otp"
-                  ? "Verify OTP & Continue"
-                  : "Login & Continue"}
+                  ? ui("identify:verify_otp_continue")
+                  : ui("identify:login_continue")}
 
               {!loading && <ArrowRight size={17} />}
             </button>
@@ -889,12 +883,9 @@ export default function Identify() {
       {pageMode === "register" && (
         <form className="identify-card card" onSubmit={submitRegistration}>
           <div className="login-section-heading">
-            <h2>Create patient profile</h2>
+            <h2>{ui("identify:create_patient_profile")}</h2>
 
-            <p>
-              Enter your details to register. Aadhaar is required while ABHA ID
-              is optional.
-            </p>
+            <p>{ui("identify:enter_your_details_to_register_aadhaar_is_required")}</p>
           </div>
 
           <div className="form-grid">
@@ -903,8 +894,8 @@ export default function Identify() {
             =========================================== */}
 
             <Field
-              label="Full name"
-              placeholder="e.g. Ananya Iyer"
+              label={ui("identify:full_name")}
+              placeholder={ui("identify:eg_ananya_iyer")}
               value={registerForm.fullName}
               onChange={(event) => {
                 setRegisterForm((previous) => ({
@@ -918,7 +909,7 @@ export default function Identify() {
             />
 
             <Field
-              label="Date of birth"
+              label={ui("identify:date_of_birth")}
               type="date"
               value={registerForm.dateOfBirth}
               onChange={(event) => {
@@ -933,7 +924,7 @@ export default function Identify() {
             />
 
             <Field
-              label="Gender"
+              label={ui("identify:gender")}
               select
               options={["Female", "Male", "Other", "Prefer not to say"]}
               value={registerForm.gender}
@@ -953,9 +944,9 @@ export default function Identify() {
             =========================================== */}
 
             <Field
-              label="Aadhaar number"
+              label={ui("identify:aadhaar_number")}
               type="password"
-              placeholder="Enter 12-digit Aadhaar number"
+              placeholder={ui("identify:enter_12digit_aadhaar_number")}
               value={registerForm.aadhaar}
               onChange={(event) => {
                 const value = event.target.value
@@ -972,8 +963,8 @@ export default function Identify() {
             />
 
             <Field
-              label="ABHA ID (optional)"
-              placeholder="14-digit ABHA or name@abdm"
+              label={ui("identify:abha_id_optional")}
+              placeholder={ui("identify:14digit_abha_or_nameabdm")}
               value={registerForm.abhaId}
               onChange={(event) => {
                 setRegisterForm((previous) => ({
@@ -991,7 +982,7 @@ export default function Identify() {
             =========================================== */}
 
             <Field
-              label="Mobile number"
+              label={ui("identify:mobile_number")}
               placeholder="9876543210"
               value={registerForm.mobile}
               onChange={(event) => {
@@ -1009,9 +1000,9 @@ export default function Identify() {
             />
 
             <Field
-              label="Email (optional)"
+              label={ui("identify:email_optional")}
               type="email"
-              placeholder="you@example.com"
+              placeholder={ui("identify:youexamplecom")}
               value={registerForm.email}
               onChange={(event) => {
                 setRegisterForm((previous) => ({
@@ -1029,8 +1020,8 @@ export default function Identify() {
             =========================================== */}
 
             <Field
-              label="Address"
-              placeholder="House number, street, locality"
+              label={ui("identify:address")}
+              placeholder={ui("identify:house_number_street_locality")}
               wide
               value={registerForm.address}
               onChange={(event) => {
@@ -1045,7 +1036,7 @@ export default function Identify() {
             />
 
             <Field
-              label="State"
+              label={ui("identify:state")}
               select
               options={[
                 "Delhi",
@@ -1070,8 +1061,8 @@ export default function Identify() {
             />
 
             <Field
-              label="District"
-              placeholder="e.g. New Delhi"
+              label={ui("identify:district")}
+              placeholder={ui("identify:eg_new_delhi")}
               value={registerForm.district}
               onChange={(event) => {
                 setRegisterForm((previous) => ({
@@ -1089,7 +1080,7 @@ export default function Identify() {
             =========================================== */}
 
             <Field
-              label="Emergency contact (optional)"
+              label={ui("identify:emergency_contact_optional")}
               placeholder="9876543210"
               value={registerForm.emergencyContact}
               onChange={(event) => {
@@ -1108,7 +1099,7 @@ export default function Identify() {
             />
 
             <Field
-              label="Relationship"
+              label={ui("identify:relationship")}
               select
               options={[
                 "Parent",
@@ -1135,9 +1126,9 @@ export default function Identify() {
             =========================================== */}
 
             <Field
-              label="Password"
+              label={ui("identify:password")}
               type="password"
-              placeholder="Minimum 8 characters"
+              placeholder={ui("identify:minimum_8_characters")}
               value={registerForm.password}
               onChange={(event) => {
                 setRegisterForm((previous) => ({
@@ -1151,9 +1142,9 @@ export default function Identify() {
             />
 
             <Field
-              label="Confirm password"
+              label={ui("identify:confirm_password")}
               type="password"
-              placeholder="Re-enter your password"
+              placeholder={ui("identify:reenter_your_password")}
               value={registerForm.confirmPassword}
               onChange={(event) => {
                 setRegisterForm((previous) => ({
@@ -1174,11 +1165,7 @@ export default function Identify() {
           <div className="notice">
             <ShieldCheck size={17} />
 
-            <span>
-              Aadhaar and health identity data are sensitive information and
-              should be securely handled by the backend. Passwords must never be
-              stored in plaintext.
-            </span>
+            <span>{ui("identify:aadhaar_and_health_identity_data_are_sensitive_information")}</span>
           </div>
 
           {/* =============================================
@@ -1187,7 +1174,7 @@ export default function Identify() {
 
           {error && (
             <div className="form-error" role="alert">
-              {error}
+              {errorText(error)}
             </div>
           )}
 
@@ -1204,12 +1191,10 @@ export default function Identify() {
 
                 resetLoginForm();
               }}
-            >
-              Already registered? Login
-            </button>
+            >{ui("identify:already_registered_login")}</button>
 
             <button type="submit" className="button primary" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? <Loader label="identify:creating_account" /> : ui("identify:create_account")}
 
               {!loading && <ArrowRight size={17} />}
             </button>

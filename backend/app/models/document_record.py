@@ -89,6 +89,7 @@ class DocumentRecord(Document):
     content_type = StringField(required=True)
     size_bytes = FloatField(required=True)  # FloatField handles large ints safely
 
+    processing_stage = StringField(default="processing", choices=["processing", "extracting", "done", "failed"])
     status = StringField(
         required=True,
         choices=["pending", "processing", "done", "failed"],

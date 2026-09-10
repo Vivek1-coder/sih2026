@@ -1,0 +1,6 @@
+{
+  "role.patient": "Patient",
+  "role.doctor": "Doctor",
+  "role.lab_assistant": "Lab assistant",
+  "role.system": "System / legacy record"
+}

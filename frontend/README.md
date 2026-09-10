@@ -177,3 +177,18 @@ docker-compose up --build
 # Frontend only (development, with hot reload)
 docker-compose up frontend
 ```
+# English/Hindi and loading states
+
+Translations live in `src/i18n/en/<namespace>.json` and the matching `hi` file. Add the same key to both files, then use `useTranslation('<namespace>')` and `t('key')` in a component. Existing components also use the reactive accessibility context and the `ui('namespace:key', values)` compatibility helper. Keep API enum values, React keys, identifiers and patient-entered text unchanged; translate their display labels. Use interpolation and plural keys for variable sentences, and `formatDate` / `formatNumber` from `src/i18n` for displayed values.
+
+The navbar offers EN / हिंदी. i18next detects the browser language on first use, falls back to English and stores an explicit selection under `medikiosk-language` in localStorage. Language changes do not remount active forms. The root uses `I18nextProvider`; components calling the standalone `ui` helper must also subscribe through `useTranslation` or `useAccessibility`.
+
+For a future language, add matching namespace JSON files, extend `supportedLngs`, the eager resource glob and language/locale helpers in `src/i18n`, and `supportedLanguages` in `locales.ts`. Extend backend request validation and clinical translations before advertising that language. English and Hindi are the supported languages today.
+
+Use the shared `Loader`, `Skeleton` and `ProgressIndicator` components in `src/components/common`. Their status regions announce progress politely and expose `aria-busy`; pending forms disable their submit controls. Fetch requests have a 45-second deadline (auth: 15 seconds), route chunks have a 20-second deadline, and document polling stops after two minutes with retry controls. Processing stages come from the server's persisted `processing_stage`; they are not simulated percentages. Retrying a failed upload means selecting the file again; a timeout does not guarantee the server cancelled the operation, so inspect the refreshed record before uploading again.
+
+Interview start/answer requests include `preferred_language`; API requests also send `Accept-Language`. Scripted Hindi questions and option labels are in `questions.json`, mirrored in `backend/app/data/questions_hi.json`. Stored option values stay language-neutral. Groq receives the language for follow-ups and summaries. A translated view of an existing summary does not overwrite the reviewed record. Without Groq, scripted questions and known structured values still translate; free-form patient narrative and source-document text remain verbatim rather than receiving an invented translation.
+
+Public backend errors return stable `code` values plus field/type codes for validation. Register new errors in `backend/app/data/message_codes.json` and add both language strings in `errors.json`. UI errors are translated when rendered, so an existing error can follow a language change.
+
+Run `npm run check:i18n`, `npm run lint`, `npm run build`, and `npm test`. The multilingual regression tests cover active-flow switching, persistence, API language headers, request loading and timeout/retry behavior. Vitest isolates modules so mock providers cannot leak between workflow tests.

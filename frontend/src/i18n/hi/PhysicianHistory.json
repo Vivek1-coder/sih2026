@@ -1,0 +1,11 @@
+{
+  "issue_prescription": "पर्चा जारी करें",
+  "medicine": "दवा",
+  "dosage": "खुराक",
+  "frequency": "कितनी बार",
+  "route": "लेने का तरीका",
+  "start_date": "शुरू होने की तिथि",
+  "end_date_optional": "समाप्ति तिथि (वैकल्पिक)",
+  "notes": "टिप्पणियाँ",
+  "issuing": "जारी हो रहा है…"
+}

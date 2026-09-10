@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from app.api.dependencies import get_current_patient_id, get_current_token_payload
 from app.models.summary import ClinicalHistorySummary
@@ -47,15 +47,21 @@ def require_summary_consent(patient_id: str) -> None:
 @router.post("/generate", response_model=ClinicalHistorySummaryResponse)
 def generate_summary(
     request: SummaryGenerateRequest | None = None,
+    accept_language: str = Header(default="en-IN"),
     patient_id: str = Depends(get_current_patient_id),
 ) -> ClinicalHistorySummaryResponse:
     require_summary_consent(patient_id)
-    return summary_response(
+    from app.services.interview_service import interview_service
+    session = interview_service.get_owned(request.session_id, patient_id) if request and request.session_id else interview_service.current(patient_id)
+    if session:
+        session.update(set__preferred_language="hi-IN" if accept_language.startswith("hi") else "en-IN")
+    from app.services.summary_localization import localize_response
+    return localize_response(summary_response(
         summary_service.generate(
             patient_id,
             request.session_id if request else None,
         )
-    )
+    ), "hi-IN" if accept_language.startswith("hi") else "en-IN")
 
 
 @router.get("/current", response_model=ClinicalHistorySummaryResponse)

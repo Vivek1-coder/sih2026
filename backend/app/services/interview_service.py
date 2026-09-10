@@ -36,10 +36,9 @@ class InterviewService:
         """Return the existing active session or create a new one."""
         existing = self._active_session(patient_id)
         if existing:
-            existing.preferred_language = preferred_language
-            existing.updated_at = utc_now()
-            existing.save()
-            return existing
+            return InterviewSession.objects(pk=existing.id).modify(
+                new=True, set__preferred_language=preferred_language, set__updated_at=utc_now()
+            )
 
         session = InterviewSession(
             patient_id=patient_id,
@@ -96,6 +95,7 @@ class InterviewService:
         question_id: str,
         value: str,
         input_mode: str = "touch",
+        preferred_language: str | None = None,
     ) -> InterviewSession:
         session = self.get_owned(session_id, patient_id)
         if session.status != "active" or not session.current_question_id:
@@ -109,6 +109,8 @@ class InterviewService:
                 detail="Answer does not match the current question",
             )
 
+        if preferred_language:
+            session.preferred_language = preferred_language
         question = interview_engine.question(session, question_id)
         answer = InterviewAnswer(
             session_id=session.id,
@@ -132,6 +134,7 @@ class InterviewService:
         saved = InterviewSession.objects(pk=session.id, current_question_id=question_id, status="active", visit_status="in_progress").modify(
             new=True, set__answers=session.answers, set__alerts=session.alerts,
             set__department=session.department,
+            set__preferred_language=session.preferred_language,
             set__priority=session.priority, set__current_question_id=session.current_question_id,
             set__status=session.status, set__step=session.step,
             set__updated_at=session.updated_at, set__completed_at=session.completed_at)

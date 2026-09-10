@@ -1,7 +1,5 @@
 import {
-  createContext,
-  type Dispatch,
-  type SetStateAction,
+  createContext
 } from "react";
 
 import type {
@@ -24,9 +22,7 @@ export interface AuthContextValue {
 
   preferredLanguage: string;
 
-  setPreferredLanguage: Dispatch<
-    SetStateAction<string>
-  >;
+  setPreferredLanguage: (language: string) => void;
 }
 
 export const AuthContext =

@@ -85,7 +85,7 @@ def start_interview(
         raise HTTPException(status_code=403, detail="Consent required")
     session = interview_service.start_or_resume(
         patient_id,
-        consent.preferred_language,
+        (request.preferred_language if request else None) or consent.preferred_language,
         request.department if request else None,
     )
     return session_response(session)
@@ -131,6 +131,7 @@ def answer_interview_question(
         request.question_id,
         request.answer,
         input_mode=request.input_mode,
+        preferred_language=request.preferred_language,
     )
     return session_response(session)
 

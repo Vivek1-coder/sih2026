@@ -1,0 +1,21 @@
+{
+  "nav.label": "Main navigation",
+  "nav.identify": "Identify",
+  "nav.consent": "Consent",
+  "nav.interview": "Interview",
+  "nav.triage": "Triage alert",
+  "nav.summary": "Review summary",
+  "nav.complete": "Visit complete",
+  "nav.queue": "Physician queue",
+  "nav.consultation": "Consultation",
+  "nav.welcome": "Welcome",
+  "nav.home": "Patient home",
+  "nav.patient": "Patient",
+  "nav.lab": "Laboratory",
+  "nav.physician": "Physician",
+  "nav.signOut": "Sign out",
+  "header.language": "Language",
+  "header.accessibility": "Large text",
+  "header.help": "Help",
+  "header.user": "Demo user"
+}

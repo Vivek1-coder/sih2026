@@ -35,6 +35,7 @@ class UploadedDocumentResponse(BaseModel):
     original_filename: str
     content_type: str
     size_bytes: int
+    processing_stage: str = "processing"
     status: Literal["pending", "processing", "done", "failed"]
     document_date: date | None
     extraction: ExtractedDocumentResponse | None

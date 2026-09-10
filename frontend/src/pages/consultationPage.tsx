@@ -1,3 +1,8 @@
+import Loader from "../components/common/Loader";
+import { errorText } from "../i18n";
+import Skeleton from "../components/common/Skeleton";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../i18n";
 import PhysicianHistory from "../components/common/PhysicianHistory";
 import {
   AlertTriangle,
@@ -22,10 +27,12 @@ import type { PhysicianPatientSummary } from "../types/physician.type";
 import { useNavigate } from "react-router-dom";
 
 export default function Consultation() {
+  useTranslation();
   const patientId = decodeURIComponent(
     window.location.pathname.split("/").pop() ?? "",
   );
 
+  const [retryCount, setRetryCount] = useState(0);
   const [consult, setConsult] = useState<PhysicianPatientSummary | null>(null);
   const [sections, setSections] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -36,6 +43,8 @@ export default function Consultation() {
   useEffect(() => {
     let active = true;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
+    setMessage("");
     getPhysicianPatientSummary(patientId)
       .then((payload) => {
         if (active) {
@@ -49,17 +58,17 @@ export default function Consultation() {
           setMessage(
             reason instanceof Error
               ? reason.message
-              : "Consultation unavailable",
+              : "errors:consultation_unavailable",
           ),
       );
 
     return () => {
       active = false;
     };
-  }, [patientId]);
+  }, [patientId, retryCount]);
 
   const persist = async (confirm: boolean) => {
-    if (!consult) return;
+    if (!consult || saving) return;
 
     setSaving(true);
     setMessage("");
@@ -81,12 +90,12 @@ export default function Consultation() {
 
       setMessage(
         confirm
-          ? "Clinical history confirmed by physician."
-          : "Draft edits saved.",
+          ? "errors:clinical_history_confirmed_by_physician"
+          : "errors:draft_edits_saved",
       );
     } catch (reason) {
       setMessage(
-        reason instanceof Error ? reason.message : "Unable to save summary",
+        reason instanceof Error ? reason.message : "errors:unable_to_save_summary",
       );
     } finally {
       setSaving(false);
@@ -106,6 +115,7 @@ export default function Consultation() {
     <>
       {/* Header untouched */}
       <Header physician />
+      {!consult && !message && <Skeleton />}
 
       {/* Background untouched */}
       <main
@@ -131,9 +141,7 @@ export default function Consultation() {
           <ChevronLeft
             size={17}
             className="transition-transform group-hover:-translate-x-0.5"
-          />
-          Back to queue
-        </button>
+          />{ui("consultationPage:back_to_queue")}</button>
 
         {/* Error */}
         {message && !consult && (
@@ -151,7 +159,7 @@ export default function Consultation() {
               size={19}
               className="mt-0.5 shrink-0 text-red-500"
             />
-            {message}
+            {errorText(message)}<button className="button secondary" onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button>
           </div>
         )}
 
@@ -200,9 +208,7 @@ export default function Consultation() {
 
                   <div className="min-w-0">
                     <div className="mb-1.5 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-blue-600">
-                      <Stethoscope size={13} />
-                      Consult-ready history
-                    </div>
+                      <Stethoscope size={13} />{ui("consultationPage:consultready_history")}</div>
 
                     <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
                       {consult.queue.display_name}
@@ -215,20 +221,18 @@ export default function Consultation() {
 
                       <span className="text-slate-300">•</span>
 
-                      <span>{consult.queue.department}</span>
+                      <span>{ui(consult.queue.department)}</span>
 
                       <span className="text-slate-300">•</span>
 
-                      <span>Summary v{consult.summary.version}</span>
+                      <span>{ui("consultationPage:summary_v")}{consult.summary.version}</span>
 
                       {confirmed && (
                         <>
                           <span className="text-slate-300">•</span>
 
                           <span className="inline-flex items-center gap-1 font-medium text-emerald-600">
-                            <Check size={13} />
-                            Verified
-                          </span>
+                            <Check size={13} />{ui("consultationPage:verified")}</span>
                         </>
                       )}
                     </div>
@@ -256,7 +260,7 @@ export default function Consultation() {
                       <Sparkles size={15} />
                     )}
 
-                    {confirmed ? "Physician verified" : "Review required"}
+                    {confirmed ? ui("consultationPage:physician_verified") : ui("consultationPage:review_required")}
                   </div>
                 </div>
               </div>
@@ -287,13 +291,9 @@ export default function Consultation() {
 
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <strong className="text-sm font-semibold text-red-800">
-                          Priority triage signal
-                        </strong>
+                        <strong className="text-sm font-semibold text-red-800">{ui("consultationPage:priority_triage_signal")}</strong>
 
-                        <span className="rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600">
-                          Requires attention
-                        </span>
+                        <span className="rounded-md bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600">{ui("consultationPage:requires_attention")}</span>
                       </div>
 
                       <p className="mt-1.5 text-sm leading-6 text-red-700">
@@ -321,15 +321,9 @@ export default function Consultation() {
                 </div>
 
                 <div className="text-sm">
-                  <strong className="font-semibold text-violet-800">
-                    AI-assisted clinical history
-                  </strong>
+                  <strong className="font-semibold text-violet-800">{ui("consultationPage:aiassisted_clinical_history")}</strong>
 
-                  <p className="mt-0.5 leading-5 text-slate-600">
-                    AI-drafted content is not an autonomous diagnosis. Verify
-                    all information with the patient and source documents before
-                    confirmation.
-                  </p>
+                  <p className="mt-0.5 leading-5 text-slate-600">{ui("consultationPage:aidrafted_content_is_not_an_autonomous_diagnosis_verify")}</p>
                 </div>
               </div>
             </div>
@@ -358,13 +352,9 @@ export default function Consultation() {
                       </div>
 
                       <div>
-                        <h2 className="text-sm font-semibold text-slate-900">
-                          Source records
-                        </h2>
+                        <h2 className="text-sm font-semibold text-slate-900">{ui("consultationPage:source_records")}</h2>
 
-                        <p className="text-[11px] text-slate-500">
-                          Clinical information sources
-                        </p>
+                        <p className="text-[11px] text-slate-500">{ui("consultationPage:clinical_information_sources")}</p>
                       </div>
                     </div>
                   </div>
@@ -373,21 +363,15 @@ export default function Consultation() {
                     {/* Interview */}
                     <div className="p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                          Interview
-                        </span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{ui("consultationPage:interview")}</span>
 
                         <span className="flex items-center gap-1.5 text-[10px] font-medium text-emerald-600">
-                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                          Complete
-                        </span>
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />{ui("consultationPage:complete")}</span>
                       </div>
 
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-500">
-                            Captured answers
-                          </span>
+                          <span className="text-slate-500">{ui("consultationPage:captured_answers")}</span>
 
                           <span className="font-semibold text-slate-900">
                             {consult.interview.answers.length}
@@ -396,9 +380,7 @@ export default function Consultation() {
 
                         <div className="flex items-center justify-between gap-3 text-sm">
                           <span className="flex items-center gap-1.5 text-slate-500">
-                            <Languages size={14} />
-                            Language
-                          </span>
+                            <Languages size={14} />{ui("consultationPage:language")}</span>
 
                           <span className="truncate font-medium text-slate-700">
                             {consult.interview.preferred_language}
@@ -410,9 +392,7 @@ export default function Consultation() {
                     {/* Documents */}
                     <div className="p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                          Documents
-                        </span>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">{ui("consultationPage:documents")}</span>
 
                         <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                           {consult.documents.length}
@@ -426,9 +406,7 @@ export default function Consultation() {
                             className="mb-2 text-slate-400"
                           />
 
-                          <p className="text-xs text-slate-500">
-                            No documents uploaded
-                          </p>
+                          <p className="text-xs text-slate-500">{ui("consultationPage:no_documents_uploaded")}</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -466,17 +444,13 @@ export default function Consultation() {
 
                     {/* ABDM */}
                     <div className="p-4">
-                      <span className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                        ABDM Integration
-                      </span>
+                      <span className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-slate-400">{ui("consultationPage:abdm_integration")}</span>
 
                       <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3">
-                        <p className="text-[10px] font-medium uppercase tracking-wide text-blue-500">
-                          Bundle ID
-                        </p>
+                        <p className="text-[10px] font-medium uppercase tracking-wide text-blue-500">{ui("consultationPage:bundle_id")}</p>
 
                         <p className="mt-1 break-all text-xs font-semibold text-blue-800">
-                          {consult.abdm?.bundle_id ?? "Not pushed"}
+                          {consult.abdm?.bundle_id ?? ui("consultationPage:not_pushed")}
                         </p>
                       </div>
                     </div>
@@ -488,7 +462,7 @@ export default function Consultation() {
                   CENTER — HISTORY
               ===================================================== */}
               <section
-                aria-label="Structured clinical history"
+                aria-label={ui("consultationPage:structured_clinical_history")}
                 className="min-w-0"
               >
                 <div className="mb-4 flex items-end justify-between gap-3 px-1">
@@ -501,21 +475,15 @@ export default function Consultation() {
                         />
                       </div>
 
-                      <h2 className="text-lg font-bold text-slate-900">
-                        Structured clinical history
-                      </h2>
+                      <h2 className="text-lg font-bold text-slate-900">{ui("consultationPage:structured_clinical_history")}</h2>
                     </div>
 
-                    <p className="mt-1.5 pl-8 text-xs text-slate-500">
-                      Review and edit AI-organised clinical information.
-                    </p>
+                    <p className="mt-1.5 pl-8 text-xs text-slate-500">{ui("consultationPage:review_and_edit_aiorganised_clinical_information")}</p>
                   </div>
 
                   {!confirmed && (
                     <span className="hidden items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 sm:inline-flex">
-                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                      Editable
-                    </span>
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />{ui("consultationPage:editable")}</span>
                   )}
                 </div>
 
@@ -559,15 +527,13 @@ export default function Consultation() {
                             htmlFor={`section-${index}`}
                             className="text-sm font-semibold capitalize text-slate-800"
                           >
-                            {title}
+                            {ui(title)}
                           </label>
                         </div>
 
                         {confirmed && (
                           <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                            <Check size={12} />
-                            Verified
-                          </span>
+                            <Check size={12} />{ui("consultationPage:verified")}</span>
                         )}
                       </div>
 
@@ -600,9 +566,7 @@ export default function Consultation() {
                         />
 
                         <div className="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3 text-[10px] text-slate-400">
-                          <Sparkles size={11} className="text-violet-500" />
-                          AI-organised · physician verification required
-                        </div>
+                          <Sparkles size={11} className="text-violet-500" />{ui("consultationPage:aiorganised_physician_verification_required")}</div>
                       </div>
                     </div>
                   ))}
@@ -629,13 +593,9 @@ export default function Consultation() {
                       </div>
 
                       <div>
-                        <h2 className="text-sm font-semibold text-slate-900">
-                          Physician controls
-                        </h2>
+                        <h2 className="text-sm font-semibold text-slate-900">{ui("consultationPage:physician_controls")}</h2>
 
-                        <p className="text-[11px] text-slate-500">
-                          Review workflow
-                        </p>
+                        <p className="text-[11px] text-slate-500">{ui("consultationPage:review_workflow")}</p>
                       </div>
                     </div>
                   </div>
@@ -664,15 +624,15 @@ export default function Consultation() {
                           }`}
                         >
                           {confirmed
-                            ? "Review completed"
-                            : "Awaiting verification"}
+                            ? ui("consultationPage:review_completed")
+                            : ui("consultationPage:awaiting_verification")}
                         </span>
                       </div>
 
                       <p className="mt-2 text-[11px] leading-5 text-slate-600">
                         {confirmed
-                          ? "This clinical history has been reviewed and confirmed."
-                          : "Save changes as draft or confirm after clinical verification."}
+                          ? ui("consultationPage:this_clinical_history_has_been_reviewed_and_confirmed")
+                          : ui("consultationPage:save_changes_as_draft_or_confirm_after_clinical")}
                       </p>
                     </div>
 
@@ -697,7 +657,7 @@ export default function Consultation() {
                         "
                       >
                         <Save size={16} />
-                        {saving ? "Saving..." : "Save draft"}
+                        {saving ? <Loader label="consultationPage:saving" /> : ui("consultationPage:save_draft")}
                       </button>
 
                       <button
@@ -725,10 +685,10 @@ export default function Consultation() {
                         <Check size={17} />
 
                         {confirmed
-                          ? "History confirmed"
+                          ? ui("consultationPage:history_confirmed")
                           : saving
-                            ? "Saving..."
-                            : "Confirm history"}
+                            ? <Loader label="consultationPage:saving" />
+                            : ui("consultationPage:confirm_history")}
                       </button>
                     </div>
 
@@ -746,7 +706,7 @@ export default function Consultation() {
                             size={14}
                             className="mt-0.5 shrink-0"
                           />
-                          {message}
+                          {errorText(message)}
                         </div>
                       </div>
                     )}
@@ -770,22 +730,20 @@ export default function Consultation() {
                           size={15}
                           className="text-violet-600"
                         />
-                      </div>
-                      Before confirming
-                    </div>
+                      </div>{ui("consultationPage:before_confirming")}</div>
 
                     <div className="space-y-2">
                       {[
-                        "Verify patient-reported history",
-                        "Review uploaded documents",
-                        "Check red-flag symptoms",
+                        "consultationPage:verify_patient",
+                        "consultationPage:review_documents",
+                        "consultationPage:check_flags",
                       ].map((item) => (
                         <div
-                          key={item}
+                          key={ui(item)}
                           className="flex items-start gap-2 text-[11px] leading-5 text-slate-500"
                         >
                           <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />
-                          {item}
+                          {ui(item)}
                         </div>
                       ))}
                     </div>

@@ -1,10 +1,11 @@
+import { locale } from "../i18n";
 import { apiError, apiFetch } from "./api";
 import type { InterviewQuestion, InterviewSession } from "../types/interview.type";
 
 export type InputMode = "voice" | "touch" | "text";
 
 export async function startInterview(): Promise<InterviewSession> {
-  const response = await apiFetch("/api/interview/session", { method: "POST" });
+  const response = await apiFetch("/api/interview/session", { method: "POST", body: JSON.stringify({ preferred_language: locale() }) });
   if (!response.ok) throw await apiError(response);
   return response.json() as Promise<InterviewSession>;
 }
@@ -23,7 +24,7 @@ export async function submitAnswer(
 ): Promise<InterviewSession> {
   const response = await apiFetch(`/api/interview/session/${sessionId}/answer`, {
     method: "POST",
-    body: JSON.stringify({ question_id: questionId, answer, input_mode: inputMode }),
+    body: JSON.stringify({ question_id: questionId, answer, input_mode: inputMode, preferred_language: locale() }),
   });
   if (!response.ok) throw await apiError(response);
   return response.json() as Promise<InterviewSession>;

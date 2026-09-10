@@ -131,6 +131,8 @@ class DocumentService:
                 consent = consent_service.get(record.patient_id)
                 if not consent or consent.status != "active" or not consent.choices.document_processing:
                     raise ValueError("Document-processing consent is no longer active")
+            record.processing_stage = "extracting"
+            record.save()
             extraction = extract_mock_document(
                 str(record.id),
                 record.stored_path,
@@ -165,6 +167,7 @@ class DocumentService:
             record.extraction = embedded
             record.inferred_document_date = extraction.document_date
             record.status = "done"
+            record.processing_stage = "done"
             record.save()
             from app.services.continuity_service import audit
             audit(record.patient_id, "document_processed", session_id=record.session_id, actor_role="system",
@@ -172,7 +175,8 @@ class DocumentService:
 
         except Exception as exc:  # noqa: BLE001
             record.status = "failed"
-            record.error = "Document processing failed. Please contact the care team."
+            record.processing_stage = "failed"
+            record.error = "errors:processingFailed"
             record.save()
             from app.services.continuity_service import audit
             audit(record.patient_id, "document_processing_failed", session_id=record.session_id, actor_role="system",

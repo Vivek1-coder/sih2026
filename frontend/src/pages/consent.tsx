@@ -1,3 +1,8 @@
+import Loader from "../components/common/Loader";
+import { errorText } from "../i18n";
+import { useTranslation } from 'react-i18next';
+import { supportedLanguages } from '../i18n/locales';
+import { ui } from "../i18n";
 import {
   AlertTriangle,
   ArrowRight,
@@ -17,32 +22,9 @@ import PatientShell from "../components/common/patientShell";
 import { useNavigate } from "react-router-dom";
 
 
-const languages = [
-  { label: "English", code: "en-IN" },
-  { label: "हिंदी", code: "hi-IN" },
-  { label: "অসমীয়া", code: "as-IN" },
-  { label: "বাংলা", code: "bn-IN" },
-  { label: "मराठी", code: "mr-IN" },
-  { label: "தமிழ்", code: "ta-IN" },
-  { label: "తెలుగు", code: "te-IN" },
-] as const;
+const languages = supportedLanguages;
 
-const explanations: Record<string, string> = {
-  "en-IN":
-    "We will collect the health information you choose to share and prepare an AI-assisted draft for your assigned physician. You may skip optional document processing and ABHA linking, and you may revoke consent at any time.",
-  "hi-IN":
-    "हम आपकी दी हुई स्वास्थ्य जानकारी से आपके डॉक्टर के लिए एआई की सहायता से एक मसौदा बनाएंगे। दस्तावेज़ और आभा लिंक करना वैकल्पिक है, और आप कभी भी सहमति वापस ले सकते हैं।",
-  "as-IN":
-    "আপুনি দিয়া স্বাস্থ্য তথ্যৰ পৰা চিকিৎসকৰ বাবে এটা সহায়ক খচৰা তৈয়াৰ কৰা হ’ব। নথি প্ৰক্ৰিয়াকৰণ ঐচ্ছিক আৰু আপুনি যিকোনো সময়তে সন্মতি বাতিল কৰিব পাৰে।",
-  "bn-IN":
-    "আপনার দেওয়া স্বাস্থ্য তথ্য থেকে চিকিৎসকের জন্য একটি সহায়ক খসড়া তৈরি হবে। নথি প্রক্রিয়াকরণ ঐচ্ছিক এবং আপনি যেকোনো সময় সম্মতি প্রত্যাহার করতে পারেন।",
-  "mr-IN":
-    "तुम्ही दिलेल्या आरोग्य माहितीतून डॉक्टरांसाठी एआय-सहाय्यित मसुदा तयार केला जाईल. कागदपत्र प्रक्रिया ऐच्छिक आहे आणि तुम्ही कधीही संमती मागे घेऊ शकता.",
-  "ta-IN":
-    "நீங்கள் பகிரும் சுகாதாரத் தகவலிலிருந்து மருத்துவருக்கான உதவி வரைவு உருவாக்கப்படும். ஆவண செயலாக்கம் விருப்பமானது; ஒப்புதலை எப்போது வேண்டுமானாலும் திரும்பப் பெறலாம்.",
-  "te-IN":
-    "మీరు పంచుకునే ఆరోగ్య సమాచారంతో వైద్యునికి సహాయక ముసాయిదా తయారవుతుంది. పత్రాల ప్రాసెసింగ్ ఐచ్ఛికం; సమ్మతిని ఎప్పుడైనా ఉపసంహరించుకోవచ్చు.",
-};
+
 
 const categories: Array<{
   key: keyof ConsentChoices;
@@ -100,8 +82,10 @@ function emptyChoices(): ConsentChoices {
 }
 
 export default function Consent() {
+  useTranslation();
   const { preferredLanguage, setPreferredLanguage } = useAuth();
   const { t } = useAccessibility();
+  const [retryCount, setRetryCount] = useState(0);
   const [choices, setChoices] = useState<ConsentChoices>(emptyChoices);
   const [hasActiveRecord, setHasActiveRecord] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -109,20 +93,22 @@ export default function Consent() {
   const [error, setError] = useState("");
   const speech = useSpeech(preferredLanguage);
   const stopConsentSpeech = speech.stopSpeaking;
-  const explanation = explanations[preferredLanguage] ?? explanations["en-IN"];
+  const explanation = ui('consent:explanation');
   const navigate = useNavigate();
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
+    setLoading(true); setError("");
     getConsent()
       .then((record) => {
         if (!active || !record) return;
         setChoices(record.choices);
-        setPreferredLanguage(record.preferred_language);
+
         setHasActiveRecord(record.status === "active");
       })
       .catch((loadError: unknown) => {
         if (active) {
-          setError(loadError instanceof Error ? loadError.message : "Unable to load consent.");
+          setError(loadError instanceof Error ? loadError.message : "errors:unable_to_load_consent");
         }
       })
       .finally(() => {
@@ -132,7 +118,7 @@ export default function Consent() {
       active = false;
       stopConsentSpeech();
     };
-  }, [setPreferredLanguage, stopConsentSpeech]);
+  }, [stopConsentSpeech, retryCount]);
 
   const requiredGranted = useMemo(
     () => categories.filter((category) => category.required).every((category) => choices[category.key]),
@@ -140,18 +126,19 @@ export default function Consent() {
   );
 
   const submit = async () => {
+    if (saving) return;
     setError("");
     setSaving(true);
     try {
       const record = await saveConsent(preferredLanguage, choices);
       setHasActiveRecord(true);
       if (!record.required_granted) {
-        setError("Please grant every required permission before continuing.");
+        setError("errors:please_grant_every_required_permission_before_continuing");
         return;
       }
       navigate("/patient/interview");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save consent.");
+      setError(saveError instanceof Error ? saveError.message : "errors:unable_to_save_consent");
     } finally {
       setSaving(false);
     }
@@ -165,7 +152,7 @@ export default function Consent() {
       setChoices(emptyChoices());
       setHasActiveRecord(false);
     } catch (revokeError) {
-      setError(revokeError instanceof Error ? revokeError.message : "Unable to revoke consent.");
+      setError(revokeError instanceof Error ? revokeError.message : "errors:unable_to_revoke_consent");
     }
   };
 
@@ -179,7 +166,7 @@ export default function Consent() {
         </div>
       </section>
 
-      <div className="consent-layout">
+      {loading && <Loader />}<div className="consent-layout" aria-busy={loading || saving}>
         <div className="card language-card">
           <h2>{t("consent.language")}</h2>
           <div className="language-grid">
@@ -205,14 +192,14 @@ export default function Consent() {
                 type="button"
                 className="play-button"
                 onClick={() => speech.speaking ? speech.stopSpeaking() : speech.speak(explanation)}
-                aria-label={speech.speaking ? "Stop consent audio" : "Play consent audio"}
+                aria-label={speech.speaking ? ui("consent:stop_consent_audio") : ui("consent:play_consent_audio")}
                 disabled={!speech.speechSynthesisSupported}
               >
                 {speech.speaking ? "Ⅱ" : <Play size={22} fill="currentColor" />}
               </button>
               <div>
                 <strong>{t("consent.listen")}</strong>
-                <p><span className="read-dot" /> Web Speech · {preferredLanguage}</p>
+                <p><span className="read-dot" />{ui("consent:web_speech")}{preferredLanguage}</p>
               </div>
               <button type="button" className="icon-button" onClick={() => speech.speak(explanation)}>
                 <RotateCcw size={17} />
@@ -222,8 +209,8 @@ export default function Consent() {
               <span style={{ width: speech.speaking ? "70%" : "0%" }} />
             </div>
             <div className="audio-controls">
-              <span>{speech.speaking ? "Reading aloud…" : "Ready"}</span>
-              <button type="button"><Volume2 size={16} /> 0.95x</button>
+              <span>{speech.speaking ? ui("consent:reading_aloud") : ui("consent:ready")}</span>
+              <button type="button"><Volume2 size={16} />{ui("consent:095x")}</button>
             </div>
             <p className="transcript">“{explanation}”</p>
           </div>
@@ -251,7 +238,7 @@ export default function Consent() {
             </label>
           ))}
 
-          {error && <div className="form-error" role="alert">{error}</div>}
+          {error && <div className="form-error" role="alert">{errorText(error)}<button className="button secondary" disabled={loading || saving} onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button></div>}
           {!requiredGranted && !loading && (
             <div className="consent-warning"><AlertTriangle size={16} /> {t("consent.warning")}</div>
           )}
@@ -262,7 +249,7 @@ export default function Consent() {
             disabled={!requiredGranted || loading || saving}
             onClick={submit}
           >
-            {saving ? "Saving…" : t("consent.save")} <ArrowRight size={17} />
+            {saving ? <Loader /> : t("consent.save")} <ArrowRight size={17} />
           </button>
           {hasActiveRecord && (
             <button type="button" className="revoke-button" onClick={revoke}>

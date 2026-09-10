@@ -28,6 +28,11 @@ class InterviewEngine:
         node = self._node(question_id)
         source = "ontology"
         text = node.get("text")
+        options = node.get("options", [])
+        if session.preferred_language.startswith("hi"):
+            translations = json.loads((ONTOLOGY_PATH.parent / "questions_hi.json").read_text(encoding="utf-8"))
+            text = translations.get(f"{question_id}.text", text)
+            options = [{**option, "label": translations.get(f"{question_id}.{option['value']}", option["label"])} for option in options]
         if node.get("generator") == "free_text_follow_up":
             source = "llm_fallback"
             latest_answer = session.answers[-1].value if session.answers else ""
@@ -42,7 +47,7 @@ class InterviewEngine:
             "text": text,
             "section": node["section"],
             "input_type": node["input_type"],
-            "options": node.get("options", []),
+            "options": options,
             "required": node.get("required", True),
             "source": source,
         }

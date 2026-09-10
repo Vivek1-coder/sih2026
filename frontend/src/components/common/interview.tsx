@@ -1,3 +1,8 @@
+import { errorText } from "../../i18n";
+import { useTranslation } from 'react-i18next';
+import Loader from "./Loader";
+import { questionText, formatNumber } from "../../i18n";
+import { ui } from "../../i18n";
 import {
   AlertTriangle,
   ArrowRight,
@@ -11,7 +16,7 @@ import {
   Sparkles,
   Volume2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import useAuth from "../../hooks/useAuth";
 import useAccessibility from "../../hooks/useAccessibility";
@@ -34,8 +39,8 @@ const sections = [
   "Lifestyle",
 ];
 
-function humanize(value: string) {
-  return value.replaceAll("_", " ");
+function humanize(value: string, questionId?: string) {
+  return questionText(`${questionId}.${value}`, value.replaceAll("_", " "));
 }
 
 interface InterviewProps {
@@ -44,11 +49,17 @@ interface InterviewProps {
 }
 
 export default function Interview({ go }: InterviewProps) {
-  const { preferredLanguage, setPreferredLanguage } = useAuth();
+  useTranslation();
+  const { preferredLanguage } = useAuth();
   const { t } = useAccessibility();
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [answer, setAnswer] = useState("");
+  const [loadingQuestion, setLoadingQuestion] = useState(true);
+  const languageRef = useRef(preferredLanguage);
+  useEffect(() => { languageRef.current = preferredLanguage; }, [preferredLanguage]);
+  const [retryCount, setRetryCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const pending = busy || loadingQuestion;
   const [error, setError] = useState("");
   const [readAloud, setReadAloud] = useState(false);
   const [inputMode, setInputMode] = useState<InputMode>("touch");
@@ -69,32 +80,35 @@ export default function Interview({ go }: InterviewProps) {
 
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
+    setLoadingQuestion(true);
+    setError("");
     startInterview()
       .then((loadedSession) => {
         if (!active) return;
         setSession(loadedSession);
-        setPreferredLanguage(loadedSession.preferred_language);
+
       })
       .catch((loadError: unknown) => {
         if (!active) return;
         setError(
           loadError instanceof Error
             ? loadError.message
-            : "Unable to start interview.",
+            : "errors:unable_to_start_interview",
         );
-      });
+      }).finally(() => { if (active) setLoadingQuestion(false); });
     return () => {
       active = false;
       stopInterviewListening();
       stopInterviewSpeech();
     };
-  }, [setPreferredLanguage, stopInterviewListening, stopInterviewSpeech]);
+  }, [preferredLanguage, retryCount, stopInterviewListening, stopInterviewSpeech]);
 
   useEffect(() => {
     if (readAloud && question) {
-      speakQuestion(question.text);
+      speakQuestion(questionText(`${question.id}.text`, question.text));
     }
-  }, [question, readAloud, speakQuestion]);
+  }, [question, readAloud, speakQuestion, preferredLanguage]);
 
   const answeredSections = useMemo(
     () => new Set(session?.answers.map((item) => item.section) ?? []),
@@ -102,9 +116,10 @@ export default function Interview({ go }: InterviewProps) {
   );
 
   const respond = async (value: string, mode: InputMode) => {
-    if (!session?.current_question || busy || !value.trim()) return;
+    if (!session?.current_question || pending || !value.trim()) return;
     setBusy(true);
     setError("");
+    const requestLanguage = preferredLanguage;
     setInputMode(mode);
     speech.stopListening();
     try {
@@ -115,7 +130,8 @@ export default function Interview({ go }: InterviewProps) {
         mode,
       );
       setSession(updated);
-      setPreferredLanguage(updated.preferred_language);
+      if (languageRef.current !== requestLanguage) setRetryCount(n => n + 1);
+
       setAnswer("");
       setInputMode("touch");
 
@@ -134,7 +150,7 @@ export default function Interview({ go }: InterviewProps) {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unable to save answer.",
+          : "errors:unable_to_save_answer",
       );
     } finally {
       setBusy(false);
@@ -149,14 +165,10 @@ export default function Interview({ go }: InterviewProps) {
         <div>
           <span className="eyebrow">{t("interview.eyebrow")}</span>
           <h1>{t("interview.title")}</h1>
-          <p>
-            Choose an option, type, or speak. Your answers determine the next
-            question.
-          </p>
+          <p>{ui("interview:choose_an_option_type_or_speak_your_answers")}</p>
         </div>
         <span className="save-status">
-          <span className="save-dot" /> Server autosave enabled
-        </span>
+          <span className="save-dot" />{ui("interview:server_autosave_enabled")}</span>
       </div>
 
       {session?.triage_required && latestAlert && (
@@ -164,25 +176,24 @@ export default function Interview({ go }: InterviewProps) {
           <AlertTriangle size={22} />
           <div>
             <PriorityBadge priority="Urgent" />
-            <strong> Immediate clinical triage recommended</strong>
+            <strong>{ui("interview:immediate_clinical_triage_recommended")}</strong>
             <p>{latestAlert.reason}</p>
           </div>
           <button
             className="button secondary"
             onClick={() => navTo("/patient/triage-alert", { alerts: session.alerts })}
-          >
-            Open triage alert <ArrowRight size={16} />
+          >{ui("interview:open_triage_alert")}<ArrowRight size={16} />
           </button>
         </div>
       )}
 
       <div className="interview-layout">
         <aside className="card interview-sidebar">
-          <div className="progress-ring" aria-label={`${session?.progress ?? 0}% complete`}>
-            <strong>{session?.progress ?? 0}%</strong>
-            <span>complete</span>
+          <div className="progress-ring" aria-label={ui("common:percentComplete", { value: formatNumber((session?.progress ?? 0) / 100, { style: "percent" }) })}>
+            <strong>{formatNumber((session?.progress ?? 0) / 100, { style: "percent" })}</strong>
+            <span>{ui("interview:complete")}</span>
           </div>
-          <h3>Your sections</h3>
+          <h3>{ui("interview:your_sections")}</h3>
           {sections.map((section, index) => {
             const complete = answeredSections.has(section);
             return (
@@ -191,28 +202,23 @@ export default function Interview({ go }: InterviewProps) {
                 key={section}
               >
                 <span>{complete ? <Check size={13} /> : index + 1}</span>
-                {section}
+                {ui(section)}
               </div>
             );
           })}
           {session?.department === "ayurveda" && (
             <div className="section-row complete">
-              <span>🌿</span> Dashavidha
-            </div>
+              <span>🌿</span>{ui("interview:dashavidha")}</div>
           )}
         </aside>
 
         <section
           className="card conversation"
-          aria-busy={busy}
+          aria-busy={pending}
           id="patient-content"
           tabIndex={-1}
         >
-          {!session && !error && (
-            <div className="conversation-loading">
-              Preparing your first question…
-            </div>
-          )}
+          {pending && !error && <Loader label="interview:waiting" />}
           {question ? (
             <>
               <div className="ai-message">
@@ -222,10 +228,10 @@ export default function Interview({ go }: InterviewProps) {
                 <div>
                   <span className="label">
                     {question.source === "llm_fallback"
-                      ? "Generated follow-up · reviewable"
-                      : question.section}
+                      ? ui("interview:generated_followup_reviewable")
+                      : ui(question.section)}
                   </span>
-                  <p id="question-text">{question.text}</p>
+                  <p id="question-text">{questionText(`${question.id}.text`, question.text)}</p>
                 </div>
               </div>
 
@@ -238,21 +244,21 @@ export default function Interview({ go }: InterviewProps) {
                     className="suggestions"
                     role="group"
                     aria-labelledby="question-text"
-                    aria-label="Answer options"
+                    aria-label={ui("interview:answer_options")}
                   >
                     {question.options.map((option) => (
                       <button
                         key={option.value}
-                        disabled={busy}
+                        disabled={pending}
                         onClick={() => respond(option.value, "touch")}
-                        aria-label={option.label}
+                        aria-label={questionText(`${question.id}.${option.value}`, option.label)}
                       >
                         {option.icon && (
                           <span className="option-icon" aria-hidden="true">
                             {option.icon}
                           </span>
                         )}
-                        {option.label}
+                        {questionText(`${question.id}.${option.value}`, option.label)}
                       </button>
                     ))}
                   </div>
@@ -261,15 +267,15 @@ export default function Interview({ go }: InterviewProps) {
               {/* Voice + text affordance — always shown */}
               <div
                 className={`voice-input ${speech.listening ? "listening" : ""}`}
-                aria-label="Voice and text answer input"
+                aria-label={ui("interview:voice_and_text_answer_input")}
               >
                 <div className="voice-hint">
                   {speech.listening ? (
                     <>
-                      <AudioLines size={18} /> Listening in {preferredLanguage}…
+                      <AudioLines size={18} />{ui("interview:listening", { language: ui(preferredLanguage) })}
                     </>
                   ) : (
-                    <>Or answer in your own words</>
+                    <>{ui("interview:or_answer_in_your_own_words")}</>
                   )}
                 </div>
                 {speech.listening && (
@@ -288,15 +294,15 @@ export default function Interview({ go }: InterviewProps) {
                 )}
                 <div className="voice-actions">
                   <input
-                    aria-label="Your answer"
+                    aria-label={ui("interview:your_answer")}
                     aria-describedby="question-text"
                     value={answer}
                     onChange={(event) => setAnswer(event.target.value)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") respond(answer, "text");
                     }}
-                    placeholder="Type your answer here…"
-                    disabled={busy}
+                    placeholder={ui("interview:type_your_answer_here")}
+                    disabled={pending}
                   />
                   <button
                     className="mic-button"
@@ -311,13 +317,13 @@ export default function Interview({ go }: InterviewProps) {
                       }
                     }}
                     aria-label={
-                      speech.listening ? "Stop recording" : "Start recording"
+                      speech.listening ? ui("interview:stop_recording") : ui("interview:start_recording")
                     }
-                    disabled={!speech.speechRecognitionSupported}
+                    disabled={pending || !speech.speechRecognitionSupported}
                     title={
                       speech.speechRecognitionSupported
-                        ? "Voice answer"
-                        : "Speech recognition is unavailable in this browser"
+                        ? ui("interview:voice_answer")
+                        : ui("interview:speech_recognition_is_unavailable_in_this_browser")
                     }
                   >
                     {speech.listening ? (
@@ -329,8 +335,8 @@ export default function Interview({ go }: InterviewProps) {
                   <button
                     className="mic-button send-answer"
                     onClick={() => respond(answer, inputMode === "voice" ? "voice" : "text")}
-                    disabled={!answer.trim() || busy}
-                    aria-label="Send answer"
+                    disabled={!answer.trim() || pending}
+                    aria-label={ui("interview:send_answer")}
                   >
                     <Send size={18} />
                   </button>
@@ -340,85 +346,69 @@ export default function Interview({ go }: InterviewProps) {
               <div className="conversation-footer">
                 <button
                   className="text-button"
-                  onClick={() => speech.speak(question.text)}
-                  aria-label="Repeat question aloud"
+                  onClick={() => speech.speak(questionText(`${question.id}.text`, question.text))}
+                  aria-label={ui("interview:repeat_question_aloud")}
                 >
-                  <RotateCcw size={16} /> Repeat question
-                </button>
+                  <RotateCcw size={16} />{ui("interview:repeat_question")}</button>
                 <button
                   className="text-button"
                   onClick={() => respond("not_sure", "touch")}
-                  disabled={busy}
-                >
-                  I don't know
-                </button>
+                  disabled={pending}
+                >{ui("interview:i_dont_know")}</button>
               </div>
             </>
           ) : session?.status === "completed" ? (
             <div className="interview-complete">
               <Check size={28} />
-              <h2>Your health history is complete.</h2>
-              <p>
-                The structured draft will remain clearly marked for physician
-                review.
-              </p>
+              <h2>{ui("interview:your_health_history_is_complete")}</h2>
+              <p>{ui("interview:the_structured_draft_will_remain_clearly_marked_for")}</p>
             </div>
           ) : null}
           {error && (
             <div className="form-error" role="alert">
-              {error}
+              {errorText(error)}
               <button
                 className="text-button"
-                onClick={() => {
-                  setError("");
-                  startInterview()
-                    .then((s) => { setSession(s); setPreferredLanguage(s.preferred_language); })
-                    .catch(() => setError("Unable to start interview. Please refresh."));
-                }}
-              >
-                Retry
-              </button>
+                disabled={pending} onClick={() => setRetryCount(n => n + 1)}
+              >{ui("interview:retry")}</button>
             </div>
           )}
           {session?.answers.length ? (
             <div className="last-answer">
-              <Check size={15} /> Saved:{" "}
-              {humanize(session.answers.at(-1)?.value ?? "")}
+              <Check size={15} />{ui("interview:saved")}{" "}
+              {humanize(session.answers.at(-1)?.value ?? "", session.answers.at(-1)?.question_id)}
             </div>
           ) : null}
         </section>
 
         <aside className="card preview-card">
           <div className="card-title">
-            <h3>Live history preview</h3>
+            <h3>{ui("interview:live_history_preview")}</h3>
             <span className="ai-pill">
-              <Sparkles size={13} /> Draft
-            </span>
+              <Sparkles size={13} />{ui("interview:draft")}</span>
           </div>
-          <p className="preview-muted">
-            Patient-provided answers, structured as you go.
-          </p>
+          <p className="preview-muted">{ui("interview:patientprovided_answers_structured_as_you_go")}</p>
           {!session?.answers.length ? (
             <div className="empty-preview">
               <ClipboardList size={25} />
-              <p>Start answering to build your story.</p>
+              <p>{ui("interview:start_answering_to_build_your_story")}</p>
             </div>
           ) : (
             <div className="preview-items">
               {session.answers.slice(-6).map((item) => (
                 <div key={item.id}>
-                  <span>{item.section}</span>
-                  <strong>{humanize(item.value)}</strong>
+                  <span>{ui(item.section)}</span>
+                  <strong>{humanize(item.value, item.question_id)}</strong>
                 </div>
               ))}
             </div>
           )}
           <div className="accessibility-box">
             <Volume2 size={17} />
-            <span>Read each question aloud</span>
+            <span>{ui("interview:read_each_question_aloud")}</span>
             <button
               className={`toggle ${readAloud ? "toggle-on" : ""}`}
-              aria-label="Toggle automatic read aloud"
+              aria-label={ui("interview:toggle_automatic_read_aloud")}
               aria-pressed={readAloud}
               onClick={() => setReadAloud((current) => !current)}
             >
@@ -433,8 +423,7 @@ export default function Interview({ go }: InterviewProps) {
           className="button secondary"
           onClick={() => navTo("/patient/consent")}
         >
-          <ChevronLeft size={17} /> Back
-        </button>
+          <ChevronLeft size={17} />{ui("interview:back")}</button>
         <button
           className="button primary"
           onClick={() =>
@@ -450,7 +439,7 @@ export default function Interview({ go }: InterviewProps) {
             (session.status !== "completed" && !session.triage_required)
           }
         >
-          {session?.triage_required ? "Go to triage" : "Continue to documents"}{" "}
+          {session?.triage_required ? ui("interview:go_to_triage") : ui("interview:continue_to_documents")}{" "}
           <ArrowRight size={17} />
         </button>
       </div>

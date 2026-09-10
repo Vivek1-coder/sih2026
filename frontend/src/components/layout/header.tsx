@@ -1,6 +1,9 @@
+import { useState } from "react";
+import Loader from "../common/Loader";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../../i18n";
 import {
   Accessibility,
-  Activity,
   FlaskConical,
   HeartPulse,
   Home,
@@ -16,20 +19,7 @@ import useAccessibility from "../../hooks/useAccessibility";
 import useAuth from "../../hooks/useAuth";
 import { supportedLanguages } from "../../i18n/locales";
 
-const sections: Record<string, string> = {
-  "/patient/identify": "nav.identify",
-  "/patient/home": "patient.home",
-  "/patient/location": "patient.location",
-  "/patient/consent": "nav.consent",
-  "/patient/interview": "nav.interview",
-  "/patient/triage-alert": "nav.triage",
-  "/patient/documents": "patient.documents",
-  "/patient/summary": "nav.summary",
-  "/patient/complete": "nav.complete",
-  "/patient/profile": "patient.profile",
-  "/physician": "nav.queue",
-  "/lab": "lab.title",
-};
+
 
 interface NavItem {
   path: string;
@@ -37,12 +27,12 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-export default function Header({
-  section,
-}: {
+export default function Header(props: {
   physician?: boolean;
   section?: string;
 }) {
+  void props;
+  useTranslation();
   const {
     language,
     setLanguage,
@@ -91,21 +81,16 @@ export default function Header({
       : []),
   ];
 
-  const current =
-    section ??
-    t(
-      sections[pathname] ??
-        (pathname.startsWith("/physician/patient/")
-          ? "nav.consultation"
-          : "nav.welcome"),
-    );
-
+  const [signingOut, setSigningOut] = useState(false);
   const handleLogout = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
     await logout();
 
     sessionStorage.removeItem("medikiosk-visit");
 
-    navigate("/patient/identify");
+    } finally { setSigningOut(false); navigate("/patient/identify"); }
   };
 
   return (
@@ -116,14 +101,13 @@ export default function Header({
       <NavLink
         className="navbar-brand"
         to="/"
-        aria-label="MediKiosk home"
+        aria-label={ui("header:medikiosk_home")}
       >
         <span className="navbar-logo">
           <HeartPulse size={21} strokeWidth={2.4} />
         </span>
 
-        <span className="navbar-brand-text">
-          Medi<span>Kiosk</span>
+        <span className="navbar-brand-text">{ui("header:medi")}<span>{ui("header:kiosk")}</span>
         </span>
       </NavLink>
 
@@ -175,6 +159,7 @@ export default function Header({
           ACTIONS
       -------------------------------------------------- */}
       <div className="navbar-actions">
+        {status === 'loading' && <Loader />}
         {/* Language */}
         <label
           className="navbar-action navbar-language"
@@ -217,9 +202,7 @@ export default function Header({
         >
           <Accessibility size={18} />
 
-          <span className="navbar-action-label">
-            Accessibility
-          </span>
+          <span className="navbar-action-label">{ui("header:accessibility")}</span>
         </button>
 
         <span className="navbar-divider" />
@@ -236,9 +219,7 @@ export default function Header({
             </span>
 
             <div className="navbar-profile-info">
-              <span className="navbar-profile-label">
-                Workspace
-              </span>
+              <span className="navbar-profile-label">{ui("header:workspace")}</span>
 
               <strong>
                 {t(
@@ -264,12 +245,10 @@ export default function Header({
               </span>
 
               <div className="navbar-profile-info">
-                <span className="navbar-profile-label">
-                  Patient
-                </span>
+                <span className="navbar-profile-label">{ui("header:patient")}</span>
 
                 <strong>
-                  {user?.display_name || "Profile"}
+                  {user?.display_name || ui("header:profile")}
                 </strong>
               </div>
             </NavLink>
@@ -279,9 +258,9 @@ export default function Header({
               className="navbar-action navbar-logout"
               aria-label={t("nav.signOut")}
               title={t("nav.signOut")}
-              onClick={handleLogout}
+              onClick={handleLogout} disabled={signingOut} aria-busy={signingOut}
             >
-              <LogOut size={18} />
+              {signingOut ? <Loader /> : <LogOut size={18} />}
             </button>
           </>
         )}

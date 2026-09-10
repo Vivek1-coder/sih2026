@@ -132,7 +132,7 @@ class LabService:
             raise HTTPException(404, "Report not found")
         # Lab staff can track their own report, never retrieve the patient's unrelated clinical records.
         return {"id": str(record.id), "patient_id": record.patient_id, "original_filename": record.original_filename,
-                "status": record.status, "uploaded_at": serialize(record)["uploaded_at"], "error": record.error}
+                "processing_stage": record.processing_stage, "status": record.status, "uploaded_at": serialize(record)["uploaded_at"], "error": record.error}
 
 
 lab_service = LabService()

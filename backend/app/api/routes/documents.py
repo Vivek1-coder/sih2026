@@ -41,6 +41,7 @@ def document_response(document: DocumentRecord) -> UploadedDocumentResponse:
         original_filename=document.original_filename,
         content_type=document.content_type,
         size_bytes=document.size_bytes,
+        processing_stage=document.processing_stage,
         status=document.status,
         document_date=document.inferred_document_date,
         extraction=(

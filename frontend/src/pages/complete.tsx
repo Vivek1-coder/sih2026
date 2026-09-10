@@ -1,4 +1,9 @@
-import { ArrowRight, Check, LoaderCircle } from "lucide-react";
+import { formatNumber } from "../i18n";
+import { errorText } from "../i18n";
+import Loader from "../components/common/Loader";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../i18n";
+import { ArrowRight, Check, } from "lucide-react";
 import { useEffect, useState } from "react";
 import PatientShell from "../components/common/patientShell";
 import useAccessibility from "../hooks/useAccessibility";
@@ -10,17 +15,21 @@ import type { ABDMPush, QueuePatient } from "../types/physician.type";
 import { useNavigate } from "react-router-dom";
 
 export default function Complete() {
+  useTranslation();
   const { user } = useAuth();
   const { t } = useAccessibility();
+  const [retryCount, setRetryCount] = useState(0);
   const [queue, setQueue] = useState<QueuePatient | null>(null);
   const [push, setPush] = useState<ABDMPush | null>(null);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
+    setError("");
     getCurrentSummary()
       .then(async (summary) => {
-        if (!summary) throw new Error("No submitted summary was found.");
+        if (!summary) throw new Error("errors:no_submitted_summary_was_found");
         const pushed = await pushSummaryToABDM(summary.id);
         const position = await getMyQueueStatus();
         if (active) {
@@ -34,13 +43,13 @@ export default function Complete() {
           setError(
             reason instanceof Error
               ? reason.message
-              : "Check-in could not be completed",
+              : "errors:checkin_could_not_be_completed",
           ),
       );
     return () => {
       active = false;
     };
-  }, []);
+  }, [retryCount]);
 
   return (
     <PatientShell active="Consult">
@@ -49,24 +58,20 @@ export default function Complete() {
           {queue ? (
             <Check size={38} />
           ) : (
-            <LoaderCircle className="spin" size={38} />
+            !error && <Loader size={38} />
           )}
         </div>
-        <span className="eyebrow">
-          Check-in {queue ? "complete" : "processing"}
+        <span className="eyebrow">{ui("complete:checkin")}{queue ? ui("complete:complete") : ui("complete:processing")}
         </span>
         <h1>
           {queue
-            ? `${t("complete.done")}, ${user?.display_name ?? "patient"}.`
+            ? ui("complete:greeting", { greeting: t("complete.done"), name: user?.display_name ?? ui("common:patient") })
             : t("complete.processing")}
         </h1>
-        <p>
-          Your submitted history is ready for the care team. The ABDM transfer
-          below is a demo and leaves no external system.
-        </p>
+        <p>{ui("complete:your_submitted_history_is_ready_for_the_care")}</p>
         {error && (
           <div className="form-error" role="alert">
-            {error}
+            {errorText(error)}<button className="button secondary" onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button>
           </div>
         )}
         {queue && (
@@ -75,24 +80,24 @@ export default function Complete() {
             <strong>{queue.token}</strong>
             <div className="token-details">
               <div>
-                <span>Department</span>
-                <b>{queue.department}</b>
+                <span>{ui("complete:department")}</span>
+                <b>{ui(queue.department)}</b>
               </div>
               <div>
-                <span>Priority</span>
-                <b>{queue.priority}</b>
+                <span>{ui("complete:priority")}</span>
+                <b>{ui(queue.priority)}</b>
               </div>
               <div>
-                <span>Estimated wait</span>
-                <b>~{queue.estimated_wait_minutes} min</b>
+                <span>{ui("complete:estimated_wait")}</span>
+                <b>{ui("common:waitMinutes", { value: formatNumber(queue.estimated_wait_minutes) })}</b>
               </div>
               <div>
-                <span>Queue position</span>
-                <b>{queue.queue_position}</b>
+                <span>{ui("complete:queue_position")}</span>
+                <b>{formatNumber(queue.queue_position)}</b>
               </div>
             </div>
             {push && (
-              <p className="muted">Mock FHIR Bundle: {push.bundle_id}</p>
+              <p className="muted">{ui("complete:mock_fhir_bundle")}{push.bundle_id}</p>
             )}
           </div>
         )}
@@ -107,10 +112,7 @@ export default function Complete() {
             {t("complete.home")}
           </button>
         </div>
-        <p className="muted small">
-          Wait times are estimates. If you feel worse, alert a staff member
-          immediately.
-        </p>
+        <p className="muted small">{ui("complete:wait_times_are_estimates_if_you_feel_worse")}</p>
       </div>
     </PatientShell>
   );

@@ -1,20 +1,30 @@
+import Loader from "./Loader";
+import Skeleton from "./Skeleton";
+import { errorText } from "../../i18n";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../../i18n";
 import { useEffect, useState } from 'react';
 import AuditTimeline from './AuditTimeline';
 import { patientRequest, type AuditEvent } from '../../services/patient';
 
 export default function PhysicianHistory({ patientId, sessionId }: { patientId: string; sessionId: string }) {
+  useTranslation();
+  const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
+    setLoading(true); setMessage("");
     patientRequest<AuditEvent[]>(`/api/physician/patient/${patientId}/audit-log`)
       .then(data => { if (active) setEvents(data); })
-      .catch(() => { if (active) setMessage('Sign in as the assigned physician to view the audit trail and issue prescriptions.'); });
+      .catch(() => { if (active) setMessage("errors:sign_in_as_the_assigned_physician_to_view_the"); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [patientId]);
+  }, [patientId, retryCount]);
   return <section>
-    <AuditTimeline events={events}/>
+    {loading ? <Skeleton /> : <AuditTimeline events={events}/>}
     <form className="card continuity-form" onSubmit={async event => {
       event.preventDefault(); if (busy) return;
       const form = event.currentTarget;
@@ -27,21 +37,21 @@ export default function PhysicianHistory({ patientId, sessionId }: { patientId: 
             start_date: fields.get('start_date'), end_date: fields.get('end_date') || null,
           }],
         }) });
-        form.reset(); setMessage('Prescription issued.');
+        form.reset(); setMessage("errors:prescription_issued");
         setEvents(await patientRequest<AuditEvent[]>(`/api/physician/patient/${patientId}/audit-log`));
-      } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to issue prescription.'); }
+      } catch (error) { setMessage(error instanceof Error ? error.message : "errors:unable_to_issue_prescription"); }
       finally { setBusy(false); }
     }}>
-      <h2>Issue prescription</h2>
-      <label>Medicine<input name="name" required maxLength={200}/></label>
-      <label>Dosage<input name="dosage" required maxLength={200}/></label>
-      <label>Frequency<input name="frequency" required maxLength={200}/></label>
-      <label>Route<input name="route" maxLength={100}/></label>
-      <label>Start date<input name="start_date" type="date" required/></label>
-      <label>End date (optional)<input name="end_date" type="date"/></label>
-      <label>Notes<textarea name="notes" maxLength={5000}/></label>
-      <button className="button primary" disabled={busy}>{busy ? 'Issuing…' : 'Issue prescription'}</button>
-      {message && <p role="status">{message}</p>}
+      <h2>{ui("PhysicianHistory:issue_prescription")}</h2>
+      <label>{ui("PhysicianHistory:medicine")}<input name="name" required maxLength={200}/></label>
+      <label>{ui("PhysicianHistory:dosage")}<input name="dosage" required maxLength={200}/></label>
+      <label>{ui("PhysicianHistory:frequency")}<input name="frequency" required maxLength={200}/></label>
+      <label>{ui("PhysicianHistory:route")}<input name="route" maxLength={100}/></label>
+      <label>{ui("PhysicianHistory:start_date")}<input name="start_date" type="date" required/></label>
+      <label>{ui("PhysicianHistory:end_date_optional")}<input name="end_date" type="date"/></label>
+      <label>{ui("PhysicianHistory:notes")}<textarea name="notes" maxLength={5000}/></label>
+      <button className="button primary" disabled={busy}>{busy ? <Loader /> : ui("PhysicianHistory:issue_prescription")}</button>
+      {message && <p role="status">{errorText(message)}<button type="button" disabled={loading || busy} onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button></p>}
     </form>
   </section>;
 }

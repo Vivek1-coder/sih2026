@@ -1,0 +1,19 @@
+{
+  "complete.processing": "Preparing your queue token…",
+  "complete.done": "You’re all set",
+  "complete.token": "Your consultation token",
+  "complete.home": "Return home",
+  "complete.view": "View submitted summary",
+  "checkin": "Check-in",
+  "complete": "complete",
+  "processing": "processing",
+  "your_submitted_history_is_ready_for_the_care": "Your submitted history is ready for the care team. The ABDM transfer below is a demo and leaves no external system.",
+  "department": "Department",
+  "priority": "Priority",
+  "estimated_wait": "Estimated wait",
+  "min": "min",
+  "queue_position": "Queue position",
+  "mock_fhir_bundle": "Mock FHIR Bundle:",
+  "wait_times_are_estimates_if_you_feel_worse": "Wait times are estimates. If you feel worse, alert a staff member immediately.",
+  "greeting": "{{greeting}}, {{name}}."
+}

@@ -10,6 +10,7 @@ export type LabPatient = {
 export type Demographics = Pick<LabPatient, 'full_name' | 'date_of_birth' | 'gender' | 'address' | 'mobile' | 'email'>;
 export type LabMatch = { patient: LabPatient | null; matched: boolean; created?: boolean };
 export type LabReport = {
+  processing_stage?: 'processing' | 'extracting' | 'done' | 'failed';
   id: string; patient_id: string; original_filename: string; status: 'pending' | 'processing' | 'done' | 'failed';
   uploaded_at: string; error: string | null;
 };

@@ -25,6 +25,7 @@ export type UploadedDocument = {
   original_filename: string;
   content_type: string;
   size_bytes: number;
+  processing_stage?: "processing" | "extracting" | "done" | "failed";
   status: "pending" | "processing" | "done" | "failed";
   document_date: string | null;
   extraction: ExtractedDocument | null;

@@ -1,3 +1,8 @@
+import { formatNumber } from "../i18n";
+import { errorText } from "../i18n";
+import Loader from "../components/common/Loader";
+import { useTranslation } from 'react-i18next';
+import { ui } from "../i18n";
 import {
   ArrowRight,
   Check,
@@ -30,11 +35,13 @@ function displayPriority(priority: ClinicalSummary["priority"]): Priority {
 }
 
 export default function Summary() {
+  useTranslation();
   const { user } = useAuth();
-  const { t } = useAccessibility();
+  const { t, language } = useAccessibility();
+  const [retryCount, setRetryCount] = useState(0);
   const [summary, setSummary] = useState<ClinicalSummary | null>(null);
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
-  const [readbackLanguage, setReadbackLanguage] = useState("en-IN");
+  const [readbackLanguage, setReadbackLanguage] = useState(language);
   const [reviewed, setReviewed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -43,26 +50,30 @@ export default function Summary() {
   const navigate = useNavigate();
   useEffect(() => {
     let active = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state for this request lifecycle.
+    setSummary(null);
+    setError("");
+    setReadbackLanguage(language);
     Promise.all([generateSummary(), listDocuments()])
       .then(([generated, loadedDocuments]) => {
         if (!active) return;
         setSummary(generated);
         setDocuments(loadedDocuments);
-        setReviewed(Boolean(generated.patient_acknowledged_at));
+        setReviewed(current => current || Boolean(generated.patient_acknowledged_at));
       })
       .catch((loadError: unknown) => {
         if (active)
           setError(
             loadError instanceof Error
               ? loadError.message
-              : "Unable to generate summary.",
+              : "errors:unable_to_generate_summary",
           );
       });
     return () => {
       active = false;
       stopSummarySpeech();
     };
-  }, [stopSummarySpeech]);
+  }, [stopSummarySpeech, language, retryCount]);
 
   const languageChoices = useMemo(() => {
     if (!summary) return ["en-IN"];
@@ -72,7 +83,7 @@ export default function Summary() {
     summary?.readbacks[readbackLanguage] ?? summary?.readbacks["en-IN"] ?? "";
 
   const acknowledge = async () => {
-    if (!summary || !reviewed) return;
+    if (!summary || !reviewed || submitting) return;
     setSubmitting(true);
     setError("");
     try {
@@ -85,7 +96,7 @@ export default function Summary() {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unable to submit summary.",
+          : "errors:unable_to_submit_summary",
       );
     } finally {
       setSubmitting(false);
@@ -95,10 +106,10 @@ export default function Summary() {
   const download = () => {
     if (!summary) return;
     const content = Object.entries(summary.sections)
-      .map(([title, value]) => `${title}\n${value}`)
+      .map(([title, value]) => `${ui(title)}\n${value}`)
       .join("\n\n");
     const url = URL.createObjectURL(
-      new Blob([`${summary.disclaimer}\n\n${content}`], { type: "text/plain" }),
+      new Blob([`${ui("summary:disclaimer")}\n\n${content}`], { type: "text/plain" }),
     );
     const anchor = document.createElement("a");
     anchor.href = url;
@@ -113,28 +124,21 @@ export default function Summary() {
         <div>
           <span className="eyebrow">{t("summary.eyebrow")}</span>
           <h1>{t("summary.title")}</h1>
-          <p>
-            Review and listen before sharing this draft with your assigned care
-            team.
-          </p>
+          <p>{ui("summary:review_and_listen_before_sharing_this_draft_with")}</p>
         </div>
         <span className="ai-disclaimer">
-          <Sparkles size={15} /> AI-drafted · not a diagnosis · physician
-          confirmation required
-        </span>
+          <Sparkles size={15} />{ui("summary:aidrafted_not_a_diagnosis_physician_confirmation_required")}</span>
       </section>
 
       {error && (
         <div className="form-error summary-error" role="alert">
-          {error}
-          <button onClick={() => navigate("/patient/interview")}>
-            Return to interview
-          </button>
+          {errorText(error)}
+          <button onClick={() => setRetryCount(n => n + 1)}>{ui("common:retry")}</button>
         </div>
       )}
 
       {!summary && !error && (
-        <main className="route-loading">Generating your structured draft…</main>
+        <Loader fullPage label="summary:generating_your_structured_draft" />
       )}
 
       {summary && (
@@ -142,7 +146,7 @@ export default function Summary() {
           <div>
             <div className="card identity-card">
               <div className="avatar large-avatar">
-                {(user?.display_name ?? "Demo patient")
+                {(user?.display_name ?? ui("summary:demo_patient"))
                   .split(" ")
                   .map((part) => part[0])
                   .join("")
@@ -150,8 +154,8 @@ export default function Summary() {
                   .toUpperCase()}
               </div>
               <div>
-                <h2>{user?.display_name ?? "Demo patient"}</h2>
-                <p>Patient-provided history · Version {summary.version}</p>
+                <h2>{user?.display_name ?? ui("summary:demo_patient")}</h2>
+                <p>{ui("summary:historyVersion", { version: formatNumber(summary.version) })}</p>
               </div>
               <PriorityBadge priority={displayPriority(summary.priority)} />
             </div>
@@ -159,11 +163,8 @@ export default function Summary() {
             <div className="card bilingual-readback">
               <div className="card-title">
                 <div>
-                  <h2>Bilingual read-back</h2>
-                  <p className="muted">
-                    Listen in English or your selected language before
-                    acknowledgement.
-                  </p>
+                  <h2>{ui("summary:bilingual_readback")}</h2>
+                  <p className="muted">{ui("summary:listen_in_english_or_your_selected_language_before")}</p>
                 </div>
                 <Volume2 size={20} />
               </div>
@@ -178,7 +179,7 @@ export default function Summary() {
                     }}
                   >
                     {language === "en-IN"
-                      ? "English"
+                      ? ui("summary:english")
                       : `Preferred · ${language}`}
                   </button>
                 ))}
@@ -193,7 +194,7 @@ export default function Summary() {
                 }
               >
                 <Play size={17} />{" "}
-                {speech.speaking ? "Stop read-back" : "Play audio read-back"}
+                {speech.speaking ? ui("summary:stop_readback") : ui("summary:play_audio_readback")}
               </button>
             </div>
 
@@ -201,12 +202,9 @@ export default function Summary() {
               {Object.entries(summary.sections).map(([title, text]) => (
                 <div className="card summary-section" key={title}>
                   <div>
-                    <h3>{title}</h3>
+                    <h3>{ui(title)}</h3>
                     <p>{text}</p>
-                    <small>
-                      Drafted from patient answers and available document
-                      extractions.
-                    </small>
+                    <small>{ui("summary:drafted_from_patient_answers_and_available_document_extractions")}</small>
                   </div>
                 </div>
               ))}
@@ -214,8 +212,8 @@ export default function Summary() {
 
             <div className="card timeline">
               <div className="card-title">
-                <h2>Document timeline</h2>
-                <span className="count-badge">{documents.length} files</span>
+                <h2>{ui("summary:document_timeline")}</h2>
+                <span className="count-badge">{ui("summary:fileCount", { count: documents.length, value: formatNumber(documents.length) })}</span>
               </div>
               {documents
                 .filter((document) => document.extraction)
@@ -224,7 +222,7 @@ export default function Summary() {
                     <span className="timeline-dot" />
                     <div>
                       <strong>
-                        {document.document_date ?? "Date unknown"} ·{" "}
+                        {document.document_date ?? ui("summary:date_unknown")} ·{" "}
                         {document.extraction?.document_type}
                       </strong>
                       <p>{document.extraction?.raw_summary}</p>
@@ -232,22 +230,19 @@ export default function Summary() {
                   </div>
                 ))}
               {!documents.length && (
-                <p className="muted">No documents were supplied.</p>
+                <p className="muted">{ui("summary:no_documents_were_supplied")}</p>
               )}
             </div>
           </div>
 
           <aside className="routing">
             <div className="card">
-              <h3>Ready to share</h3>
-              <p className="muted">
-                Acknowledgement submits a draft. Only a physician can mark it
-                confirmed.
-              </p>
+              <h3>{ui("summary:ready_to_share")}</h3>
+              <p className="muted">{ui("summary:acknowledgement_submits_a_draft_only_a_physician_can")}</p>
               {[
-                ["Summary generated", true],
-                ["Patient read-back", Boolean(summary.patient_acknowledged_at)],
-                ["Physician review", summary.status === "confirmed"],
+                ["summary:summary_generated", true],
+                ["summary:patient_readback", Boolean(summary.patient_acknowledged_at)],
+                ["summary:physician_review", summary.status === "confirmed"],
               ].map(([label, complete]) => (
                 <div className="route-row" key={String(label)}>
                   <span
@@ -255,8 +250,8 @@ export default function Summary() {
                   >
                     {complete ? <Check size={14} /> : <Clock3 size={14} />}
                   </span>
-                  <span>{label}</span>
-                  <em>{complete ? "Done" : "Pending"}</em>
+                  <span>{ui(String(label))}</span>
+                  <em>{complete ? ui("summary:done") : ui("summary:pending")}</em>
                 </div>
               ))}
               <label className="summary-acknowledgement">
@@ -265,29 +260,23 @@ export default function Summary() {
                   checked={reviewed}
                   onChange={(event) => setReviewed(event.target.checked)}
                 />
-                <span>
-                  I reviewed the draft and understand a physician must verify
-                  it.
-                </span>
+                <span>{ui("summary:i_reviewed_the_draft_and_understand_a_physician")}</span>
               </label>
               <button
                 className="button primary full"
                 onClick={acknowledge}
                 disabled={!reviewed || submitting}
               >
-                {submitting ? "Submitting…" : "Acknowledge and submit"}{" "}
+                {submitting ? <Loader label="summary:submitting" /> : ui("summary:acknowledge_and_submit")}{" "}
                 <ArrowRight size={17} />
               </button>
               <button
                 className="button text-button full"
                 onClick={() => navigate("/patient/interview")}
-              >
-                Go back and edit answers
-              </button>
+              >{ui("summary:go_back_and_edit_answers")}</button>
             </div>
             <button className="download-button" onClick={download}>
-              <FileText size={17} /> Download marked draft
-            </button>
+              <FileText size={17} />{ui("summary:download_marked_draft")}</button>
           </aside>
         </div>
       )}

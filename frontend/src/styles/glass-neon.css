@@ -111,3 +111,5 @@
 #root :is(.glass-card, .neon-card, .privacy-glass, .feature-bento) :is(h2,h3,h4,p,strong,small,.neon-eyebrow,.metric-number,.time-value,.feature-tag) { color: var(--ink); }
 #root :is(.neon-icon-box, .workflow-step-icon, .feature-icon, .privacy-banner-icon) { color: #5b21b6; background: rgba(237,233,254,.86); }
 #root .glass-subcard { color: var(--ink); }
+
+body, button, input, select, textarea { font-family: var(--font-sans); }

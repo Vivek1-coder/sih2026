@@ -86,6 +86,7 @@ class SummaryService:
             "{{DOCUMENT_EXTRACTIONS}}",
             json.dumps(document_payload, ensure_ascii=False, indent=2),
         )
+        prompt += f"\nPatient language: {session.preferred_language}"
         sections = llm_service.generate_clinical_summary(
             prompt,
             answer_payload,

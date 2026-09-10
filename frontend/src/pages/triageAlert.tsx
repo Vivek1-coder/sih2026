@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { ui } from "../i18n";
 import { AlertTriangle, ArrowLeft, PhoneCall, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -8,6 +10,7 @@ import type { RedFlagAlert } from "../types/interview.type";
 import { useNavigate } from "react-router-dom";
 
 export default function TriageAlert() {
+  useTranslation();
   const [alerts, setAlerts] = useState<RedFlagAlert[]>([]);
   const navigate = useNavigate();
   useEffect(() => {
@@ -27,24 +30,20 @@ export default function TriageAlert() {
       <main className="triage-alert-page" role="alert" aria-live="assertive">
         <div className="triage-alert-icon"><AlertTriangle size={38} /></div>
         <PriorityBadge priority="Urgent" />
-        <h1>Please speak to the triage team now.</h1>
-        <p>
-          Your answers contain symptoms that need prompt review by a qualified clinician.
-          This alert is a safety rule, not a diagnosis.
-        </p>
+        <h1>{ui("triageAlert:please_speak_to_the_triage_team_now")}</h1>
+        <p>{ui("triageAlert:your_answers_contain_symptoms_that_need_prompt_review")}</p>
         {alerts.map((alert) => (
           <div className="card triage-reason" key={alert.id}>
             <strong>{alert.reason}</strong>
-            <span>Reported: {alert.evidence.join(" · ")}</span>
+            <span>{ui("triageAlert:reported")}{alert.evidence.join(" · ")}</span>
           </div>
         ))}
         <div className="triage-actions">
-          <a className="button primary" href="tel:112"><PhoneCall size={18} /> Call 112 if this is an emergency</a>
+          <a className="button primary" href="tel:112"><PhoneCall size={18} />{ui("triageAlert:call_112_if_this_is_an_emergency")}</a>
           <button className="button secondary" onClick={() => navigate("/patient/interview")}>
-            <ArrowLeft size={18} /> Return to answers
-          </button>
+            <ArrowLeft size={18} />{ui("triageAlert:return_to_answers")}</button>
         </div>
-        <small><ShieldCheck size={14} /> Notify on-site clinical staff immediately if available.</small>
+        <small><ShieldCheck size={14} />{ui("triageAlert:notify_onsite_clinical_staff_immediately_if_available")}</small>
       </main>
     </PatientShell>
   );

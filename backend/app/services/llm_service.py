@@ -152,7 +152,8 @@ class LLMService:
         Groq is attempted first. Any configuration, network, parsing, or schema
         failure falls back to the deterministic local implementation.
         """
-        scripted = self._scripted_follow_up(latest_answer)
+        scripted = ("कृपया अपनी मुख्य स्वास्थ्य समस्या, उसके शुरू होने का समय और किन बातों से वह बढ़ती या घटती है, बताएँ।"
+                    if preferred_language.startswith("hi") else self._scripted_follow_up(latest_answer))
 
         cleaned = latest_answer.replace("_", " ").strip()
         user_message = (
@@ -215,6 +216,7 @@ class LLMService:
         prompt: str,
         interview_answers: list[dict[str, str]],
         document_extractions: list[dict[str, object]],
+        preferred_language: str = "en-IN",
     ) -> dict[str, str]:
         """Generate a structured physician-facing history summary.
 
@@ -223,6 +225,8 @@ class LLMService:
         """
         if "SAFETY RULES" not in prompt or "Chief Complaint" not in prompt:
             raise ValueError("Clinical summary prompt is missing safety structure")
+        if prompt.endswith("Patient language: hi-IN"):
+            preferred_language = "hi-IN"
 
         system = """You are a senior clinical documentation assistant at an Indian hospital.
 Your task is to produce a structured, physician-ready clinical history summary.
@@ -247,6 +251,7 @@ SAFETY RULES:
 - Every value must be a plain string; do not return nested objects or arrays.
 """
 
+        system += f"\nWrite all JSON values in {'Hindi' if preferred_language.startswith('hi') else 'English'}. Keep the required JSON keys unchanged."
         answers_text = json.dumps(
             interview_answers,
             ensure_ascii=False,
@@ -273,7 +278,11 @@ SAFETY RULES:
 
             logger.warning("Groq returned an invalid clinical summary; using fallback")
 
-        return self._fallback_summary(interview_answers, document_extractions)
+        fallback = self._fallback_summary(interview_answers, document_extractions)
+        if preferred_language.startswith("hi"):
+            from app.services.localized_clinical import localize_fallback
+            fallback = {key: localize_fallback(value) for key, value in fallback.items()}
+        return fallback
 
     @staticmethod
     def _parse_summary_json(raw: str) -> dict[str, str] | None:
@@ -315,6 +324,7 @@ SAFETY RULES:
         self,
         interview_answers: list[dict[str, str]],
         document_extractions: list[dict[str, object]],
+        preferred_language: str = "en-IN",
     ) -> dict[str, str]:
         """Original deterministic summary used when Groq is unavailable."""
 
@@ -396,56 +406,9 @@ SAFETY RULES:
         if preferred_language == "en-IN":
             return {"en-IN": english}
 
-        language_names = {
-            "hi-IN": "Hindi",
-            "as-IN": "Assamese",
-            "bn-IN": "Bengali",
-            "mr-IN": "Marathi",
-            "ta-IN": "Tamil",
-            "te-IN": "Telugu",
-        }
-
-        fallback_intros = {
-            "hi-IN": "यह आपकी स्वास्थ्य जानकारी का मसौदा है।",
-            "as-IN": "এইটো আপোনাৰ স্বাস্থ্য তথ্যৰ খচৰা।",
-            "bn-IN": "এটি আপনার স্বাস্থ্য তথ্যের খসড়া।",
-            "mr-IN": "हा तुमच्या आरोग्य माहितीचा मसुदा आहे.",
-            "ta-IN": "இது உங்கள் சுகாதாரத் தகவலின் வரைவு.",
-            "te-IN": "ఇది మీ ఆరోగ్య సమాచార ముసాయిదా.",
-        }
-
-        localized_intro: str | None = None
-        language_name = language_names.get(preferred_language)
-
-        if language_name:
-            translation_system = (
-                f"Translate the following single sentence into {language_name}. "
-                "Return only the translated sentence, with no quotation marks or "
-                "additional commentary."
-            )
-            intro_english = (
-                "This is a draft of your health history prepared before your "
-                "doctor visit."
-            )
-            result = _chat(
-                translation_system,
-                intro_english,
-                max_tokens=60,
-                temperature=0.1,
-            )
-            if result:
-                localized_intro = result.strip()
-
-        if not localized_intro:
-            localized_intro = fallback_intros.get(
-                preferred_language,
-                "This is your draft health history.",
-            )
-
-        return {
-            "en-IN": english,
-            preferred_language: f"{localized_intro} {english}",
-        }
+        from app.services.localized_clinical import localize_fallback
+        text = ". ".join(f"{localize_fallback(title)}: {localize_fallback(value)}" for title, value in sections.items())
+        return {preferred_language: text}
 
     # ------------------------------------------------------------------
     # Internal deterministic helpers

@@ -46,6 +46,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from app.api.message_errors import install_message_handlers
+install_message_handlers(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=sorted(

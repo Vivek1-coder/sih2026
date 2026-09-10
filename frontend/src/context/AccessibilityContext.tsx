@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   useCallback,
   useEffect,
@@ -6,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import useAuth from "../hooks/useAuth";
-import { translate } from "../i18n/locales";
+import { ui } from "../i18n";
 import { AccessibilityContext } from "./accessibilityContextValue";
 
 export default function AccessibilityProvider({
@@ -14,6 +15,7 @@ export default function AccessibilityProvider({
 }: {
   children: ReactNode;
 }) {
+  useTranslation();
   const { preferredLanguage, setPreferredLanguage } = useAuth();
   const [largeText, setLargeText] = useState(false);
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function AccessibilityProvider({
     [],
   );
   const t = useCallback(
-    (key: string) => translate(preferredLanguage, key),
+    (key: string) => { void preferredLanguage; return ui(key); },
     [preferredLanguage],
   );
   const value = useMemo(

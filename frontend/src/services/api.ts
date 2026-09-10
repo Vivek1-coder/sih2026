@@ -1,8 +1,10 @@
+import { locale } from "../i18n";
 import { getApiBaseUrl } from "./baseUrl";
 
 const API_BASE_URL = getApiBaseUrl();
 
 type ApiErrorBody = {
+  code?: string;
   detail?: string | Array<{ msg?: string }>;
 };
 
@@ -22,6 +24,7 @@ async function refreshAccess(): Promise<boolean> {
   refreshRequest ??= fetch(`${API_BASE_URL}/api/auth/refresh`, {
     method: "POST",
     credentials: "include",
+    signal: AbortSignal.timeout(45000),
   })
     .then((response) => response.ok)
     .finally(() => {
@@ -38,7 +41,9 @@ export async function apiFetch(
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
+    signal: init?.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000),
     headers: {
+      "Accept-Language": locale(),
       ...(init?.body && !(init.body instanceof FormData)
         ? { "Content-Type": "application/json" }
         : {}),
@@ -52,9 +57,10 @@ export async function apiFetch(
 }
 
 export async function apiError(response: Response): Promise<ApiError> {
-  let message = "The request could not be completed.";
+  let message = "errors:requestFailed";
   try {
     const body = (await response.json()) as ApiErrorBody;
+    if (body.code) return new ApiError(`errors:${body.code}`, response.status);
     if (typeof body.detail === "string") message = body.detail;
     if (Array.isArray(body.detail)) {
       message = body.detail.map((item) => item.msg).filter(Boolean).join(" ") || message;

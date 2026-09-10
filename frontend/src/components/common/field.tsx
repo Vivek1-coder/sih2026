@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { ui } from "../../i18n";
 interface FieldProps {
   label: string;
   placeholder?: string;
@@ -19,25 +21,25 @@ export default function Field({
   options = [],
   wide = false,
 }: FieldProps) {
+  useTranslation();
   return (
     <div className={`field ${wide ? "wide" : ""}`}>
-      <label>{label}</label>
+      <label>{ui(label)}</label>
 
       {select ? (
         <select
           value={value ?? ""}
           onChange={onChange}
         >
-          <option value="" disabled>
-            Select {label.toLowerCase()}
+          <option value="" disabled>{ui("field:select")} {ui(label)}
           </option>
 
           {options.map((option) => (
             <option
               key={option}
-              value={option}
+              value={ui(option)}
             >
-              {option}
+              {ui(option)}
             </option>
           ))}
         </select>

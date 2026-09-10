@@ -40,10 +40,12 @@ class RedFlagAlertResponse(BaseModel):
 
 
 class StartInterviewRequest(BaseModel):
+    preferred_language: Literal["en-IN", "hi-IN"] | None = None
     department: Literal["general_medicine", "ayurveda"] | None = None
 
 
 class SubmitAnswerRequest(BaseModel):
+    preferred_language: Literal["en-IN", "hi-IN"] | None = None
     question_id: str = Field(min_length=1, max_length=100)
     answer: str = Field(min_length=1, max_length=2000)
     input_mode: Literal["voice", "touch", "text"] = "touch"

@@ -1,3 +1,7 @@
+import { errorText } from "../i18n";
+import ProgressIndicator from "../components/common/ProgressIndicator";
+import Loader from "../components/common/Loader";
+import { ui, formatDate } from "../i18n";
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BadgeCheck, FileCheck2, FlaskConical, Search, ShieldCheck } from 'lucide-react';
@@ -15,6 +19,7 @@ export default function LabWorkflow() {
   const { t } = useAccessibility();
   const [params, setParams] = useSearchParams();
   const reportId = params.get('report');
+  const [retryCount, setRetryCount] = useState(0);
   const [stage, setStage] = useState<Stage>(reportId ? 'processing' : 'add');
   const [identifierType, setIdentifierType] = useState<IdentifierType>('phone');
   const [identifier, setIdentifier] = useState('');
@@ -34,6 +39,7 @@ export default function LabWorkflow() {
     if (!reportId) return;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
+    const deadline = Date.now() + 120000;
     const poll = async () => {
       try {
         const record = await getLabReport(reportId);
@@ -41,13 +47,14 @@ export default function LabWorkflow() {
         setReport(record);
         setError('');
         if (record.status === 'done') setStage('complete');
-        else if (record.status === 'failed') setError(record.error || t('lab.failed'));
+        else if (record.status === 'failed') setError('errors:processingFailed');
+        else if (Date.now() >= deadline) setError('errors:timeout');
         else timer = setTimeout(poll, 1500);
-      } catch { if (active) setError(t('lab.statusError')); }
+      } catch { if (active) setError('lab.statusError'); }
     };
     void poll();
     return () => { active = false; clearTimeout(timer); };
-  }, [reportId, t]);
+  }, [reportId, retryCount]);
   const reset = () => {
     requestVersion.current += 1;
     setParams({}); setPatient(null); setReport(null); setIdentifier(''); setDetails(emptyDetails);
@@ -67,7 +74,7 @@ export default function LabWorkflow() {
         onChange={e => { setDetails(d => ({ ...d, [field]: e.target.value })); setConfirmed(false); }}/>
     </label>)}
     <label>{t('profile.gender')}<select value={details.gender} disabled={busy} onChange={e => { setDetails(d => ({ ...d, gender: e.target.value })); setConfirmed(false); }}>
-      {['Male', 'Female', 'Other', 'Prefer not to say'].map(g => <option key={g}>{g}</option>)}
+      {['Male', 'Female', 'Other', 'Prefer not to say'].map(g => <option key={g} value={g}>{ui(g)}</option>)}
     </select></label>
   </>;
   return <>
@@ -77,8 +84,8 @@ export default function LabWorkflow() {
       <section className="page-intro"><div><span className="eyebrow"><FlaskConical size={15} aria-hidden="true"/> {t('lab.title')}</span>
         <h1 ref={heading} tabIndex={-1}>{t(`lab.stage.${stage}`)}</h1><p>{t(`lab.help.${stage}`)}</p></div></section>
       <div className="consent-layout lab-layout">
-        <section className="card continuity-form lab-form" aria-busy={busy}>
-          {error && <p role="alert" className="form-error">{error}</p>}
+        <section className="card continuity-form lab-form" aria-busy={busy || (stage === 'processing' && !error)}>
+          {error && <p role="alert" className="form-error">{errorText(error)}</p>}
           {stage === 'add' && !registration && <form onSubmit={async e => {
             e.preventDefault(); if (busy) return; setBusy(true); setError(''); const version = ++requestVersion.current;
             try {
@@ -92,14 +99,14 @@ export default function LabWorkflow() {
               {(['phone', 'email', 'aadhaar', 'abha'] as const).map(type => <option value={type} key={type}>{t(`lab.id.${type}`)}</option>)}
             </select></label>
             <label>{t('lab.identifier')}<input autoComplete="off" required maxLength={254} value={identifier} disabled={busy} onChange={e => setIdentifier(e.target.value)} /></label>
-            <button className="button primary" disabled={busy || !identifier.trim()}><Search size={17}/>{t(busy ? 'patient.loading' : 'lab.search')}</button>
+            <button className="button primary" disabled={busy || !identifier.trim()}><Search size={17}/>{busy ? <Loader /> : t('lab.search')}</button>
           </form>}
           {stage === 'add' && registration && <form onSubmit={async e => {
-            e.preventDefault(); setBusy(true); setError('');
+            e.preventDefault(); if (busy) return; setBusy(true); setError('');
             try { const match = await registerLabPatient(identifierType, identifier, details); if (match.patient) select(match.patient); }
             catch (reason) { setError(reason instanceof Error ? reason.message : t('patient.error')); } finally { setBusy(false); }
           }}><h2>{t('lab.newPatient')}</h2><p>{t('lab.noMatch')}</p>{demographicFields}
-            <button className="button primary" disabled={busy}>{t('lab.register')}</button>
+            <button className="button primary" disabled={busy}>{busy ? <Loader /> : t('lab.register')}</button>
             <button type="button" className="button secondary" disabled={busy} onClick={() => setRegistration(false)}>{t('lab.backSearch')}</button>
           </form>}
           {stage === 'verify' && patient && <form onSubmit={async e => {
@@ -110,14 +117,14 @@ export default function LabWorkflow() {
             <p className="lab-match"><BadgeCheck size={18}/>{t('lab.match')}</p>
             {patient.aadhaar_masked && <p>{patient.aadhaar_masked}</p>}{patient.abha_id && <p>{t('lab.id.abha')}: {patient.abha_id}</p>}
             {demographicFields}
-            <label className="lab-check"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>{t('lab.confirmDetails')}</label>
-            <label className="lab-check"><input type="checkbox" checked={consented} onChange={e => setConsented(e.target.checked)}/>{t('lab.consent')}</label>
-            <button className="button primary" disabled={busy || !confirmed || !consented}>{t('lab.verify')}</button>
+            <label className="lab-check"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>{t('lab.confirmDetails')}</label>
+            <label className="lab-check"><input type="checkbox" disabled={busy} checked={consented} onChange={e => setConsented(e.target.checked)}/>{t('lab.consent')}</label>
+            <button className="button primary" disabled={busy || !confirmed || !consented}>{busy ? <Loader /> : t('lab.verify')}</button>
             <button type="button" className="button secondary" disabled={busy} onClick={reset}>{t('lab.wrongPatient')}</button>
           </form>}
           {stage === 'report' && patient && <>
-            <h2>{patient.full_name}</h2><p>{patient.date_of_birth} · {patient.mobile || patient.email || patient.aadhaar_masked || patient.abha_id}</p>
-            <DocumentFilePicker label={t('lab.upload')} disabled={busy} onFiles={async files => {
+            <h2>{patient.full_name}</h2><p>{formatDate(patient.date_of_birth)} · {patient.mobile || patient.email || patient.aadhaar_masked || patient.abha_id}</p>
+            {busy && <ProgressIndicator stage="uploading" />}<DocumentFilePicker label={t('lab.upload')} disabled={busy} onFiles={async files => {
               if (busy) return; setBusy(true); setError('');
               try {
                 const result = await uploadLabReport(patient.id, verificationId, files[0]);
@@ -126,20 +133,20 @@ export default function LabWorkflow() {
             }}/><p>{t('lab.fileHelp')}</p>
             <button className="button secondary" disabled={busy} onClick={() => { setVerificationId(''); setConfirmed(false); setStage('verify'); }}>{t('lab.reviewDetails')}</button>
           </>}
-          {stage === 'processing' && <><FlaskConical size={38}/><p role="status">{t(report?.status === 'failed' ? 'lab.failed' : 'lab.processing')}</p>
+          {stage === 'processing' && <><ProgressIndicator stage={report?.processing_stage === 'extracting' ? 'extracting' : 'processing'} failed={Boolean(error)} />
             <p>{report?.original_filename}</p>
-            {error && <><button className="button secondary" onClick={() => window.location.reload()}>{t('lab.refresh')}</button>
+            {error && <><button className="button secondary" onClick={() => { setError(''); setRetryCount(n => n + 1); }}>{t('lab.refresh')}</button>
               <button className="button secondary" onClick={() => {
                 setError(''); setReport(null); setParams({});
                 if (patient && verificationId) setStage('report'); else reset();
               }}>{t('lab.chooseAnotherReport')}</button></>}
           </>}
-          {stage === 'complete' && <><FileCheck2 size={38}/><h2>{t('lab.saved')}</h2><p>{report?.original_filename}</p>
+          {stage === 'complete' && <><ProgressIndicator stage="done" /><FileCheck2 size={38}/><h2>{t('lab.saved')}</h2><p>{report?.original_filename}</p>
             <p>{t('lab.savedHelp')}</p><button className="button primary" onClick={reset}>{t('lab.nextPatient')}</button>
           </>}
         </section>
         <aside className="card continuity-panel"><ShieldCheck size={24}/><h2>{t('lab.privacy')}</h2><p>{t('lab.privacyHelp')}</p>
-          {patient && <div className="history-row"><strong>{patient.full_name}</strong><p>{patient.date_of_birth}</p><p>{t('lab.id.phone')}: {patient.mobile || '—'}</p></div>}
+          {patient && <div className="history-row"><strong>{patient.full_name}</strong><p>{formatDate(patient.date_of_birth)}</p><p>{t('lab.id.phone')}: {patient.mobile || '—'}</p></div>}
           <p className="muted">{t('lab.pipelineHelp')}</p>
         </aside>
       </div>

@@ -1,0 +1,11 @@
+{
+  "issue_prescription": "Issue prescription",
+  "medicine": "Medicine",
+  "dosage": "Dosage",
+  "frequency": "Frequency",
+  "route": "Route",
+  "start_date": "Start date",
+  "end_date_optional": "End date (optional)",
+  "notes": "Notes",
+  "issuing": "Issuing…"
+}

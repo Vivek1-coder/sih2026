@@ -76,6 +76,7 @@ interface ApiValidationError {
 }
 
 interface ApiErrorBody {
+  code?: string;
   detail?:
     | string
     | ApiValidationError[];
@@ -155,6 +156,8 @@ function getApiError(
 
   const body =
     axiosError.response?.data;
+
+  if (body?.code) return new AuthApiError(`errors:${body.code}`, status);
 
   let message =
     "Authentication request failed. Please try again.";
@@ -244,6 +247,7 @@ async function refreshSessionCookie() {
     {},
     {
       withCredentials: true,
+      timeout: 15000,
 
       headers: {
         "Content-Type":

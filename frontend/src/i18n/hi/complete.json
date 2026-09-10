@@ -1,0 +1,19 @@
+{
+  "complete.processing": "आपका कतार टोकन तैयार हो रहा है…",
+  "complete.done": "आप तैयार हैं",
+  "complete.token": "आपका परामर्श टोकन",
+  "complete.home": "मुखपृष्ठ पर लौटें",
+  "complete.view": "जमा किया सारांश देखें",
+  "checkin": "प्रवेश",
+  "complete": "पूरा",
+  "processing": "संसाधन जारी है",
+  "your_submitted_history_is_ready_for_the_care": "आपका जमा किया स्वास्थ्य इतिहास देखभाल टीम के लिए तैयार है। नीचे दिखाया ABDM हस्तांतरण केवल नमूना है; जानकारी किसी बाहरी प्रणाली में नहीं भेजी जाती।",
+  "department": "विभाग",
+  "priority": "प्राथमिकता",
+  "estimated_wait": "अनुमानित प्रतीक्षा",
+  "min": "मिनट",
+  "queue_position": "कतार में स्थान",
+  "mock_fhir_bundle": "नमूना FHIR बंडल:",
+  "wait_times_are_estimates_if_you_feel_worse": "प्रतीक्षा का समय अनुमानित है। तबीयत बिगड़ने पर तुरंत किसी कर्मचारी को बताएँ।",
+  "greeting": "{{name}}, {{greeting}}।"
+}
