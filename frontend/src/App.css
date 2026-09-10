@@ -537,6 +537,58 @@ footer p {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
+.demo-credentials-card {
+  max-width: 820px;
+  margin: 0 auto 18px;
+  padding: 18px 22px;
+}
+.demo-credentials-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: var(--primary);
+}
+.demo-credentials-heading svg {
+  flex: none;
+  margin-top: 2px;
+}
+.demo-credentials-heading h2 {
+  color: var(--ink);
+  font-size: 16px;
+  margin: 0 0 3px;
+}
+.demo-credentials-heading p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+.demo-credentials-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 0 31px;
+}
+.demo-credentials-list div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(30, 64, 175, 0.1);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.demo-credentials-list dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.demo-credentials-list dd {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 .identify-card {
   max-width: 820px;
   margin: 0 auto;
@@ -2100,6 +2152,13 @@ td small {
   }
   .identify-card {
     padding: 18px;
+  }
+  .demo-credentials-card {
+    padding: 16px;
+  }
+  .demo-credentials-list {
+    grid-template-columns: 1fr;
+    margin-left: 0;
   }
   .tabs {
     overflow-x: auto;

@@ -216,8 +216,4 @@ Replace all local development environment values with secure production values w
 
 * Integration with laboratory, pharmacy, and hospital information systems
 
-## Important
 
-Before submission, ensure that the repository is accessible to SIH reviewers.
-
-Do **not** upload passwords, API keys, access tokens, `.env` files containing secrets, database credentials, private certificates, or any other confidential information to the repository.

@@ -655,35 +655,57 @@ export default function Identify() {
       ================================================= */}
 
       {pageMode === "login" && (
-        <form className="identify-card card" onSubmit={submitLogin}>
-          <div className="login-section-heading">
-            <h2>{ui("identify:sign_in_to_your_account")}</h2>
+        <>
+          <aside className="demo-credentials-card card" aria-label="Demo login credentials">
+            <div className="demo-credentials-heading">
+              <KeyRound size={20} />
+              <div>
+                <h2>Demo login credentials</h2>
+                <p>Select <strong>Email / Phone</strong> above to use these credentials.</p>
+              </div>
+            </div>
 
-            <p>{ui("identify:select_how_you_want_to_identify_yourself")}</p>
-          </div>
+            <dl className="demo-credentials-list">
+              <div>
+                <dt>Email</dt>
+                <dd>abcd@abcd.com</dd>
+              </div>
+              <div>
+                <dt>Password</dt>
+                <dd>abcd@abcd.comF1</dd>
+              </div>
+            </dl>
+          </aside>
 
-          {/* =============================================
-              Login Method
-          ============================================= */}
+          <form className="identify-card card" onSubmit={submitLogin}>
+            <div className="login-section-heading">
+              <h2>{ui("identify:sign_in_to_your_account")}</h2>
 
-          <div className="tabs" role="tablist" aria-label={ui("identify:login_method")}>
-            {(["ABHA ID", "Aadhaar", "Email / Phone"] as LoginMethod[]).map(
-              (method) => (
-                <button
-                  key={method}
-                  type="button"
-                  role="tab"
-                  aria-selected={loginMethod === method}
-                  className={loginMethod === method ? "active" : ""}
-                  onClick={() => handleLoginMethodChange(method)}
-                >
-                  {ui(method)}
-                </button>
-              ),
-            )}
-          </div>
+              <p>{ui("identify:select_how_you_want_to_identify_yourself")}</p>
+            </div>
 
-          <div className="single-form">
+            {/* =============================================
+                Login Method
+            ============================================= */}
+
+            <div className="tabs" role="tablist" aria-label={ui("identify:login_method")}>
+              {(["ABHA ID", "Aadhaar", "Email / Phone"] as LoginMethod[]).map(
+                (method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    role="tab"
+                    aria-selected={loginMethod === method}
+                    className={loginMethod === method ? "active" : ""}
+                    onClick={() => handleLoginMethodChange(method)}
+                  >
+                    {ui(method)}
+                  </button>
+                ),
+              )}
+            </div>
+
+            <div className="single-form">
             {/* ===========================================
                 Identifier
             =========================================== */}
@@ -873,7 +895,8 @@ export default function Identify() {
               {!loading && <ArrowRight size={17} />}
             </button>
           </div>
-        </form>
+          </form>
+        </>
       )}
 
       {/* =================================================
