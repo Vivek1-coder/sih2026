@@ -1,194 +1,160 @@
-# MediKiosk — Frontend
+# MediKiosk Frontend
 
-React 19 patient-facing kiosk and physician dashboard for the MediKiosk pre-consultation system (SIH 2026).
+The frontend is a React 19 and TypeScript application for the patient kiosk
+and physician dashboard. It is built with Vite and communicates with the
+FastAPI backend using HTTP-only cookie authentication.
 
----
+## Features
 
-## Tech Stack
+- Patient login, registration, OTP, guest identification, and session restore.
+- English and Hindi translations with browser-language detection.
+- Accessible patient workflow with large text, keyboard navigation, focus
+  management, and optional Web Speech API TTS/STT.
+- Consent, adaptive interview, red-flag triage, document upload, summary
+  review, completion, and profile pages.
+- Physician queue and patient consultation views.
+- Silent access-token refresh with a single shared refresh request.
 
-| Layer | Technology |
-|-------|-----------|
-| UI Library | React 19 |
-| Language | TypeScript 6 |
-| Build Tool | Vite 8 |
-| Styling | Tailwind CSS 4 |
-| Routing | React Router 7 |
-| Speech | Web Speech API (`useSpeech` hook — TTS + STT) |
-| HTTP | Native `fetch` via `src/services/api.ts` (cookie auth + silent 401 refresh) |
-| Testing | Vitest + Testing Library |
+## Technology
 
----
+| Area | Technology |
+| --- | --- |
+| UI | React 19 |
+| Language | TypeScript |
+| Build | Vite |
+| Routing | React Router |
+| Styling | Tailwind CSS and project design-system CSS |
+| HTTP | Native `fetch` and Axios auth client |
+| Icons/charts | lucide-react and Recharts |
+| Testing | Vitest, Testing Library, jsdom |
 
-## Prerequisites
+## Requirements
 
-- **Node.js 22+** (includes npm 10+)
-- Backend API running at `http://localhost:8000` (see `backend/README.md`)
+- Node.js 22 or newer
+- npm 10 or newer
+- Backend API running locally or a deployed API URL
 
----
+## Local setup
 
-## Local Development Setup
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. (Optional) Configure the API base URL
-#    Create .env.local if the backend is not at http://localhost:8000
-echo "VITE_API_BASE=http://localhost:8000" > .env.local
-
-# 3. Start the development server with HMR
+```powershell
+npm ci
+Copy-Item .env.sample .env.local
 npm run dev
 ```
 
-App is available at `http://localhost:5173`.
+The development server runs at <http://localhost:5173>.
 
----
+Configure the API URL in `.env.local`:
 
-## Available Scripts
+```dotenv
+VITE_API_BASE_URL=http://localhost:8000
+```
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start Vite dev server with hot module replacement |
-| `npm run build` | TypeScript type-check + production build to `dist/` |
-| `npm run preview` | Preview the production build locally |
-| `npm run test` | Run Vitest test suite once (CI mode) |
-| `npm run test:ui` | Run Vitest with interactive browser UI |
-| `npm run lint` | Run ESLint on all TypeScript source files |
+Environment variables are embedded at build time. Rebuild the frontend after
+changing `VITE_API_BASE_URL`.
 
----
+## Scripts
 
-## Patient Journey — Routes
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start Vite with hot reload |
+| `npm run build` | Type-check and create `dist/` |
+| `npm run preview` | Serve the production build locally |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run Vitest once |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run check:i18n` | Check English/Hindi translation parity |
 
-All patient routes under `/patient/*` require authentication. Routes marked **Consent** additionally require the patient to have granted required consent.
+## Application routes
 
-| Route | Guard | Description |
-|-------|-------|-------------|
-| `/` | — | Landing page — kiosk entry point |
-| `/patient/identify` | — | Login (ABHA mock, Aadhaar mock, or guest) |
-| `/patient/consent` | Auth | Consent collection (DPDP Act aligned) |
-| `/patient/interview` | Auth + Consent | **Adaptive multimodal history interview** (Module A) |
-| `/patient/triage-alert` | Auth + Consent | Urgent triage notification (auto-navigated on red flag) |
-| `/patient/documents` | Auth + Consent | Upload prior reports and prescriptions |
-| `/patient/summary` | Auth + Consent | Review and confirm AI-drafted clinical summary |
-| `/patient/complete` | Auth + Consent | Visit complete — queue token display |
-| `/patient/profile` | Auth + Consent | Patient profile settings |
-
----
-
-## Physician Dashboard — Routes
+### Patient
 
 | Route | Description |
-|-------|-------------|
-| `/physician` | Today's patient queue |
-| `/physician/patient/:patientId` | Full consultation view — interview transcript, documents, summary |
+| --- | --- |
+| `/` | Kiosk landing page |
+| `/patient/identify` | Patient identification and login |
+| `/patient/consent` | Consent collection |
+| `/patient/interview` | Adaptive multimodal history interview |
+| `/patient/triage-alert` | Urgent symptom escalation |
+| `/patient/documents` | Medical document upload |
+| `/patient/summary` | Review and confirm clinical summary |
+| `/patient/complete` | Visit completion and queue token |
+| `/patient/profile` | Patient profile settings |
 
----
+### Physician
 
-## Interview Module (Module A)
+| Route | Description |
+| --- | --- |
+| `/physician` | Current patient queue |
+| `/physician/patient/:patientId` | Patient consultation details |
 
-The `/patient/interview` page is the core of the patient experience:
+Protected routes require an authenticated backend session. Consent-protected
+routes also require the patient's consent record.
 
-- **Both voice and touch are always available** — mic button for STT, large tappable options for single/scale/multi-choice questions
-- **Question types**: `single_choice`, `scale` (0–10), `free_text`, `multi_choice`
-- **TTS auto-read** — each new question is read aloud if the patient toggles the accessibility switch
-- **Live preview** — last 6 answers shown in the right panel as the session progresses
-- **Red-flag auto-navigation** — if the backend returns `triage_required: true`, the page immediately navigates to `/patient/triage-alert` without waiting for a button click
-- **Completion auto-navigation** — on `status === "completed"`, navigates to `/patient/documents`
-- **Offline/error resilience** — any network error shows a retry button; the interview never shows a permanent spinner
+## Project structure
 
----
-
-## Project Structure
-
-```
+```text
 frontend/
-├── public/                   # Static assets
+├── public/                 # Static assets and favicon
 ├── src/
-│   ├── components/
-│   │   └── common/           # Shared components
-│   │       ├── interview.tsx  # Multimodal interview UI (Module A)
-│   │       ├── interview.test.tsx
-│   │       ├── documents.tsx  # Document upload (Module B)
-│   │       ├── patientShell.tsx  # Patient layout wrapper
-│   │       ├── field.tsx      # Form input primitives
-│   │       └── stepper.tsx    # Progress step indicator
-│   ├── context/
-│   │   ├── AuthContext.tsx    # Auth state + preferredLanguage
-│   │   └── AccessibilityContext.tsx  # Font scale + i18n t()
-│   ├── hooks/
-│   │   ├── useAuth.ts         # Auth context hook
-│   │   ├── useAccessibility.ts
-│   │   └── useSpeech.ts       # Web Speech API — TTS + STT
-│   ├── pages/                 # Route-level page components
-│   ├── routes/
-│   │   └── ProtectedRoute.tsx # Auth + consent guard
-│   ├── services/
-│   │   ├── api.ts             # Base fetch wrapper (credentials + 401 refresh)
-│   │   ├── interview.ts       # Interview API calls
-│   │   ├── consent.ts
-│   │   ├── documents.ts
-│   │   └── summary.ts
-│   ├── types/
-│   │   └── interview.type.ts  # TypeScript types for all interview data
-│   ├── App.tsx                # Route definitions
-│   └── main.tsx               # React root
-├── index.html
-├── vite.config.ts
-├── tailwind.config.ts
-└── package.json
+│   ├── components/         # Shared UI, interview, documents, and layout
+│   ├── context/            # Auth and accessibility state
+│   ├── hooks/              # Auth, accessibility, and speech hooks
+│   ├── i18n/               # English and Hindi namespaces
+│   ├── pages/              # Route-level screens
+│   ├── routes/             # Protected route guards
+│   ├── services/           # API clients and domain requests
+│   ├── types/              # TypeScript domain types
+│   ├── App.tsx             # Application routes
+│   └── main.tsx            # React entry point
+├── Dockerfile
+├── nginx.conf
+├── package.json
+└── vite.config.ts
 ```
 
----
+## Authentication and API requests
 
-## Accessibility & Internationalisation
+The browser does not store JWTs in local storage. Login and refresh responses
+set `medikiosk_access` and `medikiosk_refresh` as HTTP-only cookies. Requests
+use `credentials: "include"`. `src/services/api.ts` retries one 401 after a
+shared refresh request; failed refreshes leave the user unauthenticated.
 
-- All patient-facing text goes through `t(key)` from `AccessibilityContext` (i18n-ready)
-- Font scale is applied globally via `AccessibilityContext.largeText`
-- All interactive elements have `aria-label`, `role`, and focus management
-- `useSpeech` respects the patient's `preferredLanguage` (e.g. `hi-IN`, `en-IN`) for both TTS voice selection and STT recognition language
-- Route changes trigger `window.scrollTo` + `#patient-content` focus automatically
+For a deployed frontend and API on different origins, the API must allow the
+frontend origin through CORS and issue HTTPS-compatible cookies. See
+[`backend/README.md`](../backend/README.md).
 
----
+## Internationalisation and accessibility
+
+Add matching keys to both `src/i18n/en/` and `src/i18n/hi/`. Use
+`useTranslation` for reactive translations and keep API enum values,
+identifiers, and patient-entered values unchanged. English and Hindi are the
+currently supported languages.
+
+Use the shared loading and progress components for pending states. Forms
+should disable submit controls while requests are in progress and expose
+appropriate status announcements.
 
 ## Testing
 
-```bash
-# Run all tests
+```powershell
+npm run lint
+npm run build
 npm run test
-
-# Run with coverage
-npm run test -- --coverage
+npm run check:i18n
 ```
 
-Current test files:
-- `src/components/common/interview.test.tsx` — 8 tests (voice + touch affordances, auto-navigation, error states, progress)
-- `src/components/common/documents.test.tsx` — 1 test (document upload flow)
+Tests mock routing, speech APIs, authentication, and service calls, so they
+do not require a running backend.
 
-All tests mock `react-router-dom`, `useSpeech`, `useAuth`, and service calls — no real network or browser APIs needed.
+## Docker and deployment
 
----
+Build the production image:
 
-## Docker
-
-```bash
-# Build and serve the production build via the full stack
-docker-compose up --build
-
-# Frontend only (development, with hot reload)
-docker-compose up frontend
+```powershell
+docker build --build-arg VITE_API_BASE_URL=https://sih2026-t80s.onrender.com -t medikiosk-frontend .
+docker run --rm -p 5173:80 medikiosk-frontend
 ```
-# English/Hindi and loading states
 
-Translations live in `src/i18n/en/<namespace>.json` and the matching `hi` file. Add the same key to both files, then use `useTranslation('<namespace>')` and `t('key')` in a component. Existing components also use the reactive accessibility context and the `ui('namespace:key', values)` compatibility helper. Keep API enum values, React keys, identifiers and patient-entered text unchanged; translate their display labels. Use interpolation and plural keys for variable sentences, and `formatDate` / `formatNumber` from `src/i18n` for displayed values.
-
-The navbar offers EN / हिंदी. i18next detects the browser language on first use, falls back to English and stores an explicit selection under `medikiosk-language` in localStorage. Language changes do not remount active forms. The root uses `I18nextProvider`; components calling the standalone `ui` helper must also subscribe through `useTranslation` or `useAccessibility`.
-
-For a future language, add matching namespace JSON files, extend `supportedLngs`, the eager resource glob and language/locale helpers in `src/i18n`, and `supportedLanguages` in `locales.ts`. Extend backend request validation and clinical translations before advertising that language. English and Hindi are the supported languages today.
-
-Use the shared `Loader`, `Skeleton` and `ProgressIndicator` components in `src/components/common`. Their status regions announce progress politely and expose `aria-busy`; pending forms disable their submit controls. Fetch requests have a 45-second deadline (auth: 15 seconds), route chunks have a 20-second deadline, and document polling stops after two minutes with retry controls. Processing stages come from the server's persisted `processing_stage`; they are not simulated percentages. Retrying a failed upload means selecting the file again; a timeout does not guarantee the server cancelled the operation, so inspect the refreshed record before uploading again.
-
-Interview start/answer requests include `preferred_language`; API requests also send `Accept-Language`. Scripted Hindi questions and option labels are in `questions.json`, mirrored in `backend/app/data/questions_hi.json`. Stored option values stay language-neutral. Groq receives the language for follow-ups and summaries. A translated view of an existing summary does not overwrite the reviewed record. Without Groq, scripted questions and known structured values still translate; free-form patient narrative and source-document text remain verbatim rather than receiving an invented translation.
-
-Public backend errors return stable `code` values plus field/type codes for validation. Register new errors in `backend/app/data/message_codes.json` and add both language strings in `errors.json`. UI errors are translated when rendered, so an existing error can follow a language change.
-
-Run `npm run check:i18n`, `npm run lint`, `npm run build`, and `npm test`. The multilingual regression tests cover active-flow switching, persistence, API language headers, request loading and timeout/retry behavior. Vitest isolates modules so mock providers cannot leak between workflow tests.
+The image builds the Vite app and serves `dist/` through Nginx. The Vercel
+configuration uses `npm ci`, `npm run build`, and `dist` as the output.

@@ -1,248 +1,170 @@
-# MediKiosk — Backend
+# MediKiosk Backend
 
-FastAPI + MongoDB backend for the MediKiosk patient pre-consultation kiosk (SIH 2026).
+The backend is a FastAPI service for patient identification, consent,
+clinical interviews, triage, document processing, summaries, and physician
+workflows. It uses MongoDB through MongoEngine and can optionally use Groq for
+contextual interview follow-up questions.
 
----
+## Technology
 
-## Tech Stack
+| Area | Technology |
+| --- | --- |
+| Runtime | Python 3.13+ |
+| API | FastAPI and Uvicorn |
+| Database | MongoDB and MongoEngine |
+| Validation | Pydantic Settings and schemas |
+| Authentication | JWT access tokens and rotating refresh tokens |
+| Storage | Supabase S3-compatible object storage |
+| Optional AI | Groq |
+| Testing | Pytest and Mongomock |
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Python 3.14 |
-| Framework | FastAPI 0.141 |
-| ODM | MongoEngine |
-| Database | MongoDB 7+ |
-| Auth | JWT (HS256) — access + refresh token rotation |
-| LLM | Groq API (llama-3.3-70b-versatile) with scripted fallback |
-| Server | Uvicorn (ASGI) |
+## Requirements
 
----
+- Python 3.13 or newer
+- MongoDB 7+ locally or a MongoDB Atlas URI
+- Supabase S3-compatible storage credentials
+- Groq API key is optional; scripted interview fallback remains available
 
-## Prerequisites
+## Local setup
 
-- **Python 3.14+**
-- **MongoDB 7+** running locally or a MongoDB Atlas connection string
-- (Optional) **Groq API key** from [console.groq.com](https://console.groq.com) — the system falls back to scripted questions if the key is absent
+From this directory:
 
----
-
-## Local Development Setup
-
-```bash
-# 1. Create and activate a virtual environment
+```powershell
 python -m venv venv
-venv\Scripts\activate       # Windows
-# source venv/bin/activate  # macOS / Linux
-
-# 2. Install all dependencies
+venv\Scripts\activate
 pip install -r requirements-dev.txt
+Copy-Item .env.sample .env
+```
 
-# 3. Configure environment variables
-#    Copy the example and fill in your values
-cp .env.example .env        # or create .env manually (see below)
+Fill in the required values in `.env`, then start the API:
 
-# 4. Start the development server
+```powershell
 uvicorn app.main:app --reload
 ```
 
-API is now available at `http://localhost:8000`.  
-Interactive docs (Swagger UI): `http://localhost:8000/docs`
+The API runs at <http://localhost:8000>. OpenAPI documentation is available
+at <http://localhost:8000/docs> and the health check is at
+<http://localhost:8000/health>.
 
----
+## Configuration
 
-## Environment Variables (`.env`)
+Required environment variables:
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `MONGO_URI` | ✅ | — | MongoDB connection URI (e.g. `mongodb://localhost:27017`) |
-| `MONGO_DB_NAME` | ✅ | — | Database name (e.g. `medikiosk`) |
-| `JWT_ACCESS_SECRET` | ✅ | — | Secret for signing access tokens |
-| `JWT_REFRESH_SECRET` | ✅ | — | Secret for signing refresh tokens |
-| `OTP_SECRET` | ✅ | — | Secret used to verify demo OTPs |
-| `GROQ_API_KEY` | ❌ | `""` | Groq API key — leave blank for scripted-only mode |
-| `GROQ_MODEL` | ❌ | `llama-3.3-70b-versatile` | Groq model name |
-| `COOKIE_SECURE` | ❌ | `false` | Set `true` in production (HTTPS) |
-| `COOKIE_SAMESITE` | ❌ | `lax` | Cookie SameSite policy |
-| `FRONTEND_ORIGIN` | ❌ | `http://localhost:5173` | Allowed CORS origin |
+| Variable | Description |
+| --- | --- |
+| `MONGO_URI` | MongoDB connection URI |
+| `MONGO_DB_NAME` | MongoDB database name |
+| `JWT_ACCESS_SECRET` | Access-token signing secret |
+| `JWT_REFRESH_SECRET` | Refresh-token signing secret |
+| `OTP_SECRET` | OTP hashing/signing secret |
+| `SUPABASE_S3_ENDPOINT` | S3-compatible storage endpoint |
+| `SUPABASE_S3_REGION` | Storage region |
+| `SUPABASE_S3_ACCESS_KEY_ID` | Storage access key |
+| `SUPABASE_S3_SECRET_ACCESS_KEY` | Storage secret |
+| `SUPABASE_S3_BUCKET` | Storage bucket |
 
----
+Useful optional settings:
 
-## Running Tests
+| Variable | Default | Description |
+| --- | --- | --- |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `15` | Access-token lifetime |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | Refresh-token lifetime |
+| `JWT_ALGORITHM` | `HS256` | JWT algorithm |
+| `JWT_ISSUER` | `my-api` | JWT issuer claim |
+| `JWT_AUDIENCE` | `my-react-app` | JWT audience claim |
+| `COOKIE_SECURE` | `false` | Force secure cookies |
+| `COOKIE_SAMESITE` | `lax` | Local cookie SameSite policy |
+| `COOKIE_DOMAIN` | unset | Optional cookie domain |
+| `FRONTEND_ORIGIN` | `http://localhost:5173` | Primary allowed frontend origin |
+| `FRONTEND_ORIGINS` | deployed frontend origin | Comma-separated allowed origins |
+| `GROQ_API_KEY` | empty | Optional Groq credential |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model |
 
-```bash
-# Run all interview and workflow tests (uses mongomock — no real MongoDB needed)
-pytest tests/test_interview.py tests/test_workflow.py -v
+Never commit `.env`. Generate strong, different production values for all
+secrets. When the API is behind an HTTPS reverse proxy, authentication cookies
+automatically use `Secure` and `SameSite=None` so cross-origin frontend
+requests can send them.
 
-# Run auth tests (also requires no live MongoDB)
-pytest tests/test_auth.py -v
+## Authentication
 
-# Run all tests with coverage report
+Login and registration issue:
+
+- `medikiosk_access`: short-lived HTTP-only access cookie scoped to `/api`
+- `medikiosk_refresh`: rotating HTTP-only refresh cookie scoped to
+  `/api/auth`
+
+Protected endpoints accept the access cookie or an `Authorization: Bearer
+JWT` header. Refresh tokens are hashed in MongoDB and are single-use;
+refreshing rotates the stored token. CORS is configured with credentials
+enabled, so the deployed frontend origin must be configured exactly.
+
+## API overview
+
+All routes are prefixed with `/api`.
+
+| Area | Main endpoints |
+| --- | --- |
+| Auth | `/auth/register`, `/auth/login/password`, `/auth/login/otp`, `/auth/refresh`, `/auth/logout`, `/auth/me` |
+| Consent | `/consent` |
+| Patient workflow | `/patient/session-status`, `/patient/sessions`, `/patient/profile`, `/patient/medications` |
+| Interview | `/interview/session`, `/interview/session/current`, `/interview/session/{id}/answer`, `/interview/session/{id}/complete` |
+| Documents | `/documents`, `/documents/{id}` |
+| Summary | `/summary`, `/summary/generate`, `/summary/{id}` |
+| Physician | `/physician/queue`, `/physician/patient/{id}` |
+| Lab and prescriptions | `/lab/*`, `/prescriptions/*` |
+
+The interview engine uses the clinical ontology in
+`app/data/clinical_ontology.json`. Red-flag detection is deterministic and
+can route patients to urgent triage without depending on the LLM.
+
+## Project structure
+
+```text
+backend/
+├── app/
+│   ├── api/routes/       # FastAPI route modules
+│   ├── core/             # Settings, DB connection, JWT security
+│   ├── data/             # Clinical ontology and message codes
+│   ├── models/           # MongoEngine documents
+│   ├── schemas/          # Pydantic request/response models
+│   └── services/         # Interview, OCR, storage, queue, and summary logic
+├── tests/                # Unit and workflow tests
+├── Dockerfile
+├── requirements.txt
+├── requirements-dev.txt
+└── .env.sample
+```
+
+## Tests and checks
+
+```powershell
+# Run all tests
+pytest -q
+
+# Run focused authentication tests
+pytest tests\test_auth.py -q
+
+# Run with coverage
 pytest --cov=app --cov-report=term-missing
 ```
 
-> Tests use `mongomock` (in-memory MongoDB) via the `tests/conftest.py` fixture — you do not need a running MongoDB instance to run the test suite.
+Tests use the repository's test fixtures and Mongomock where applicable; a
+live MongoDB instance is not required for those tests.
 
----
+## Docker and deployment
 
-## Docker
+Build and run the backend image:
 
-```bash
-# Build and start the backend + MongoDB together
-docker-compose up --build
-
-# Backend only (if MongoDB is already running)
-docker-compose up backend
+```powershell
+docker build -t medikiosk-backend .
+docker run --rm -p 8000:8000 --env-file .env medikiosk-backend
 ```
 
----
+From the repository root, `docker compose up --build` starts the backend,
+frontend, and MongoDB services together. The container honours the hosting
+platform's `PORT` environment variable.
 
-## API Reference
-
-All endpoints are prefixed with `/api`. Protected routes require a valid JWT access token (cookie `medikiosk_access` or `Authorization: Bearer <token>`).
-
-### Auth — `/api/auth`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/auth/login` | — | Login with ABHA mock, Aadhaar mock, or guest |
-| `POST` | `/api/auth/refresh` | — | Rotate refresh token, issue new access token |
-| `POST` | `/api/auth/logout` | ✅ | Clear session cookies |
-| `GET` | `/api/auth/me` | ✅ | Current authenticated user |
-
-### Consent — `/api/consent`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/consent` | ✅ | Save or update consent choices |
-| `GET` | `/api/consent` | ✅ | Get current consent record |
-| `DELETE` | `/api/consent` | ✅ | Revoke all consent |
-
-### Interview — `/api/interview`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/interview/session` | ✅ | Start or resume a session |
-| `GET` | `/api/interview/session/current` | ✅ | Get current/most-recent session |
-| `GET` | `/api/interview/session/{id}` | ✅ | Get session by ID |
-| `GET` | `/api/interview/session/{id}/next-question` | ✅ | Fetch next question (scripted or Groq-generated) |
-| `POST` | `/api/interview/session/{id}/answer` | ✅ | Submit an answer; runs red-flag detection |
-| `GET` | `/api/interview/session/{id}/progress` | ✅ | Current completion percentage and status |
-| `POST` | `/api/interview/session/{id}/complete` | ✅ | Mark session complete |
-
-> **Red-flag detection** runs deterministically on every answer submission (no LLM). If `triage_required` is `true` in the response, the frontend must route to `/patient/triage-alert`.
-
-### Documents — `/api/documents`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/documents` | ✅ | List patient's uploaded documents |
-| `POST` | `/api/documents` | ✅ | Upload a document (PDF / image) |
-| `GET` | `/api/documents/{id}` | ✅ | Get single document with OCR extraction |
-| `DELETE` | `/api/documents/{id}` | ✅ | Delete a document |
-
-### Summary — `/api/summary`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `POST` | `/api/summary/generate` | ✅ | Generate draft clinical summary |
-| `GET` | `/api/summary` | ✅ | Get current summary |
-| `PATCH` | `/api/summary/{id}` | ✅ | Edit sections or confirm summary |
-
-### Physician — `/api/physician`
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| `GET` | `/api/physician/queue` | ✅ | Get today's patient queue |
-| `GET` | `/api/physician/patient/{id}` | ✅ | Get full patient record for consultation |
-
----
-
-## Data Models (MongoDB Collections)
-
-| Collection | Description |
-|------------|-------------|
-| `users` | Patient accounts (Aadhaar, ABHA, credentials) |
-| `patient_consents` | Consent record per patient (one document per patient) |
-| `interview_sessions` | Full interview session including all answers and red-flag alerts |
-| `patient_documents` | Uploaded documents with OCR extraction results |
-| `clinical_summaries` | AI-drafted + physician-confirmed clinical history summaries |
-
-### `interview_sessions` document shape
-
-```json
-{
-  "_id": "<uuid-string>",
-  "patient_id": "...",
-  "preferred_language": "en-IN",
-  "department": "general_medicine",
-  "status": "active | completed",
-  "priority": "routine | priority | urgent",
-  "current_question_id": "socrates_site",
-  "answers": [
-    {
-      "id": "<uuid>",
-      "question_id": "chief_complaint",
-      "question_text": "What is your main health concern?",
-      "section": "Chief complaint",
-      "value": "chest_pain",
-      "input_mode": "touch | voice | text",
-      "answered_at": "2026-08-31T..."
-    }
-  ],
-  "alerts": [
-    {
-      "id": "<uuid>",
-      "rule_id": "chest_pain_with_dyspnoea",
-      "reason": "...",
-      "priority": "urgent",
-      "evidence": ["chest pain", "shortness of breath"],
-      "created_at": "..."
-    }
-  ],
-  "created_at": "...",
-  "updated_at": "...",
-  "completed_at": null
-}
-```
-
----
-
-## Clinical Interview Engine
-
-- **Department routing**: `general_medicine` → SOCRATES framework (12 questions); `ayurveda` → Dashavidha Pariksha (22 questions)
-- **Question tree**: defined in `app/data/clinical_ontology.json` — edit there, not in Python
-- **LLM follow-up**: when a node has `"generator": "free_text_follow_up"`, Groq generates a contextual question; scripted fallback is always available
-- **Red-flag rules** (deterministic, never LLM):
-  - `chest_pain_with_dyspnoea` — urgent
-  - `possible_stroke_symptoms` — urgent (7 keyword phrases)
-  - `severe_pain` — priority (pain score ≥ 7/10)
-
----
-
-## Project Structure
-
-```
-backend/
-├── app/
-│   ├── api/
-│   │   ├── dependencies.py        # JWT auth dependency
-│   │   └── routes/                # FastAPI routers
-│   ├── core/
-│   │   ├── config.py              # Pydantic BaseSettings
-│   │   ├── dbConnection.py        # MongoEngine connect/disconnect
-│   │   └── security.py            # Token creation + validation
-│   ├── data/
-│   │   └── clinical_ontology.json # SOCRATES + AYUSH question tree
-│   ├── models/                    # MongoEngine Documents
-│   ├── prompts/                   # LLM prompt templates
-│   ├── schemas/                   # Pydantic request/response schemas
-│   └── services/                  # Business logic
-├── tests/
-│   ├── conftest.py                # mongomock DB fixture
-│   ├── test_auth.py
-│   ├── test_interview.py
-│   └── test_workflow.py
-├── requirements.txt
-├── requirements-dev.txt
-└── .env
-```
+For Render or another HTTPS host, configure the production environment
+variables in the platform dashboard rather than committing them to the
+repository. Set the frontend URL in `FRONTEND_ORIGIN` and
+`FRONTEND_ORIGINS`.
