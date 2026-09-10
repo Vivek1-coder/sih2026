@@ -479,16 +479,30 @@ def _issue_token_response(
 # Cookie helpers
 # ============================================================
 
+def _request_is_https(request: Request) -> bool:
+    """Account for TLS terminated by Render's reverse proxy."""
+
+    forwarded_proto = request.headers.get("x-forwarded-proto", "")
+    return (
+        request.url.scheme == "https"
+        or forwarded_proto.split(",", 1)[0].strip().lower() == "https"
+    )
+
 
 def _set_auth_cookies(
     response: Response,
     tokens: TokenResponse,
+    request: Request,
 ) -> None:
 
+    secure = settings.COOKIE_SECURE or _request_is_https(request)
+    # The deployed frontend and API are on different sites, so HTTPS
+    # requests must use SameSite=None for browsers to send these cookies.
+    samesite = "none" if secure else settings.COOKIE_SAMESITE
     shared = {
         "httponly": True,
-        "secure": settings.COOKIE_SECURE,
-        "samesite": settings.COOKIE_SAMESITE,
+        "secure": secure,
+        "samesite": samesite,
         "domain": settings.COOKIE_DOMAIN,
     }
 
@@ -519,24 +533,27 @@ def _set_auth_cookies(
 
 def _clear_auth_cookies(
     response: Response,
+    request: Request,
 ) -> None:
 
+    secure = settings.COOKIE_SECURE or _request_is_https(request)
+    samesite = "none" if secure else settings.COOKIE_SAMESITE
     response.delete_cookie(
         ACCESS_COOKIE_NAME,
         path="/api",
         domain=settings.COOKIE_DOMAIN,
-        secure=settings.COOKIE_SECURE,
+        secure=secure,
         httponly=True,
-        samesite=settings.COOKIE_SAMESITE,
+        samesite=samesite,
     )
 
     response.delete_cookie(
         REFRESH_COOKIE_NAME,
         path="/api/auth",
         domain=settings.COOKIE_DOMAIN,
-        secure=settings.COOKIE_SECURE,
+        secure=secure,
         httponly=True,
-        samesite=settings.COOKIE_SAMESITE,
+        samesite=samesite,
     )
 
 
@@ -817,6 +834,7 @@ def _verify_otp(
 def register(
     request: RegisterRequest,
     response: Response,
+    http_request: Request,
 ) -> TokenResponse:
     print("REGISTER ENDPOINT HIT", flush=True)
     print("REQUEST:", request, flush=True)
@@ -993,6 +1011,7 @@ def register(
     _set_auth_cookies(
         response,
         tokens,
+        http_request,
     )
 
     return tokens
@@ -1012,6 +1031,7 @@ def register(
 def login_with_password(
     request: PasswordLoginRequest,
     response: Response,
+    http_request: Request,
 ) -> TokenResponse:
 
     user = _find_user_by_identifier(
@@ -1049,6 +1069,7 @@ def login_with_password(
     _set_auth_cookies(
         response,
         tokens,
+        http_request,
     )
 
     return tokens
@@ -1108,6 +1129,7 @@ def request_otp(
 def login_with_otp(
     request: VerifyOTPRequest,
     response: Response,
+    http_request: Request,
 ) -> TokenResponse:
 
     user = _find_user_by_identifier(
@@ -1148,6 +1170,7 @@ def login_with_otp(
     _set_auth_cookies(
         response,
         tokens,
+        http_request,
     )
 
     return tokens
@@ -1183,7 +1206,8 @@ def refresh_session(
     except TokenValidationError as exc:
 
         _clear_auth_cookies(
-            response
+            response,
+            request,
         )
 
         raise HTTPException(
@@ -1204,7 +1228,8 @@ def refresh_session(
     except HTTPException:
 
         _clear_auth_cookies(
-            response
+            response,
+            request,
         )
 
         raise
@@ -1227,6 +1252,7 @@ def refresh_session(
     _set_auth_cookies(
         response,
         tokens,
+        request,
     )
 
     return tokens
@@ -1302,7 +1328,8 @@ def logout(
             pass
 
     _clear_auth_cookies(
-        response
+        response,
+        request,
     )
 
     return LogoutResponse(
