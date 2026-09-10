@@ -5,6 +5,7 @@ import axios, {
 
 import type { AuthUser } from "../types/auth.type";
 import type { RegisterForm } from "../pages/identify";
+import { getApiBaseUrl } from "./baseUrl";
 
 export type IdentifierType =
   | "abha"
@@ -86,10 +87,7 @@ interface ApiErrorBody {
    API URL
 ========================================================= */
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://localhost:8000"
-).replace(/\/$/, "");
+const API_BASE_URL = getApiBaseUrl();
 
 /* =========================================================
    Axios instance
